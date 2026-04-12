@@ -1,5 +1,9 @@
 import type { APIRoute } from "astro";
 import { getEmDashCollection } from "emdash";
+import {
+	comparePublishedDateDesc,
+	getPublishedDate,
+} from "../utils/post-date";
 
 const siteTitle = "My Blog";
 const siteDescription = "A blog about software, design, and the occasional stray thought.";
@@ -7,15 +11,15 @@ const siteDescription = "A blog about software, design, and the occasional stray
 export const GET: APIRoute = async ({ site, url }) => {
 	const siteUrl = site?.toString() || url.origin;
 
-	const { entries: posts } = await getEmDashCollection("posts", {
-		orderBy: { published_at: "desc" },
-		limit: 20,
-	});
+	const { entries: posts } = await getEmDashCollection("posts");
 
 	const items = posts
+		.toSorted(comparePublishedDateDesc)
+		.slice(0, 20)
 		.map((post) => {
-			if (!post.data.publishedAt) return null;
-			const pubDate = post.data.publishedAt.toUTCString();
+			const publishedAt = getPublishedDate(post);
+			if (!publishedAt) return null;
+			const pubDate = publishedAt.toUTCString();
 
 			const postUrl = `${siteUrl}/posts/${post.id}`;
 			const title = escapeXml(post.data.title || "Untitled");

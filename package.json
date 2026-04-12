@@ -8,7 +8,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "wrangler deploy",
-    "typecheck": "astro check"
+    "typecheck": "astro check",
+    "import:hatena": "node scripts/import-hatena-posts.mjs",
+    "sync:hatena-media": "node scripts/sync-hatena-media.mjs",
+    "sync:hatena-published-at": "node scripts/sync-hatena-published-at.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.1.6",
@@ -23,7 +26,9 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.7",
+    "@astrojs/node": "^10.0.4",
     "@cloudflare/workers-types": "^4.20260401.1",
+    "better-sqlite3": "^12.8.0",
     "wrangler": "^4.79.0"
   },
   "emdash": {

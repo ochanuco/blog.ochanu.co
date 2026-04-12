@@ -3,17 +3,17 @@ import { getEmDashCollection, getEntryTerms } from "emdash";
 import { Image } from "emdash/ui";
 import Base from "../layouts/Base.astro";
 import PostCard from "../components/PostCard.astro";
+import {
+	comparePublishedDateDesc,
+	getPublishedDate,
+} from "../utils/post-date";
 import { getReadingTime } from "../utils/reading-time";
 
 const { entries: posts, cacheHint } = await getEmDashCollection("posts");
 
 Astro.cache.set(cacheHint);
 
-const sortedPosts = posts.toSorted((a, b) => {
-	const dateA = a.data.publishedAt?.getTime() ?? 0;
-	const dateB = b.data.publishedAt?.getTime() ?? 0;
-	return dateB - dateA;
-});
+const sortedPosts = posts.toSorted(comparePublishedDateDesc);
 
 // Find the first post with a featured image for the hero
 const featuredPost = sortedPosts.find((p) => p.data.featured_image);
@@ -110,8 +110,8 @@ function formatDate(date: Date | null | undefined) {
 											<span class="meta-dot" />
 										</>
 									)}
-									{formatDate(featuredPost.data.publishedAt) && (
-										<time>{formatDate(featuredPost.data.publishedAt)}</time>
+									{formatDate(getPublishedDate(featuredPost)) && (
+										<time>{formatDate(getPublishedDate(featuredPost))}</time>
 									)}
 									<span class="meta-dot" />
 									<span>
@@ -159,7 +159,7 @@ function formatDate(date: Date | null | undefined) {
 									excerpt={post.data.excerpt}
 									featuredImage={post.data.featured_image}
 									href={`/posts/${post.id}`}
-									date={post.data.publishedAt ?? undefined}
+									date={getPublishedDate(post) ?? undefined}
 									readingTime={getReadingTime(post.data.content)}
 									tags={tags}
 									bylines={bylines}

@@ -4,6 +4,7 @@ export const prerender = false;
 import { getEmDashCollection } from "emdash";
 import Base from "../layouts/Base.astro";
 import PostCard from "../components/PostCard.astro";
+import { getPublishedDate } from "../utils/post-date";
 import { getReadingTime, extractText } from "../utils/reading-time";
 
 const query = Astro.url.searchParams.get("q")?.trim() || "";
@@ -64,7 +65,7 @@ const results = query ? allPosts.filter((p) => matchesQuery(p, query)) : [];
 							excerpt={post.data.excerpt}
 							featuredImage={post.data.featured_image}
 							href={`/posts/${post.id}`}
-							date={post.data.publishedAt ?? undefined}
+							date={getPublishedDate(post) ?? undefined}
 							readingTime={getReadingTime(post.data.content)}
 						/>
 					))}
