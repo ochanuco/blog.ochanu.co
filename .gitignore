@@ -1,0 +1,13 @@
+node_modules/
+.astro/
+dist/
+.wrangler/
+
+uploads/
+data.db
+
+emdash-env.d.ts
+worker-configuration.d.ts
+
+.local/
+.DS_Store

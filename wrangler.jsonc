@@ -1,0 +1,32 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "my-emdash-site",
+	"main": "./src/worker.ts",
+	"compatibility_date": "2026-03-29",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "ochanuco_blog",
+			"database_name": "ochanuco-blog",
+			"database_id": "c12c591a-6754-4423-b49a-2a1ccc02b73c",
+			"remote": true
+		}
+	],
+	"r2_buckets": [
+		{
+			"bucket_name": "ochanuco-blog",
+			"binding": "ochanuco_blog",
+			"remote": true
+		},
+	],
+	"observability": {
+		"enabled": true,
+	},
+	"worker_loaders": [
+		{
+			"binding": "LOADER",
+		},
+	],
+}
