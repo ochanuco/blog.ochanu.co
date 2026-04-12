@@ -5,6 +5,9 @@ dist/
 
 uploads/
 data.db
+data.db-shm
+data.db-wal
+data.db*.bak-*
 
 emdash-env.d.ts
 worker-configuration.d.ts
