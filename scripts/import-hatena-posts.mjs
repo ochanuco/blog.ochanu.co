@@ -59,7 +59,9 @@ async function main() {
 				excerptHtml ? extractText(excerptHtml) : firstNonEmptyLine(extractText(contentHtml)),
 			) || undefined;
 		const rawContentBlocks = gutenbergToPortableText(contentHtml);
-		const contentBlocks = await materializeMediaReferences(rawContentBlocks, mediaRegistry);
+		const contentBlocks = stripHatenaKeywordLinks(
+			await materializeMediaReferences(rawContentBlocks, mediaRegistry),
+		);
 		const featuredImage = findFeaturedImage(contentBlocks, frontmatter.title);
 
 		const categories = mapTermLabels(
@@ -333,11 +335,63 @@ function findFeaturedImage(blocks, fallbackAlt) {
 	};
 }
 
+function stripHatenaKeywordLinks(value) {
+	if (Array.isArray(value)) {
+		return value.map((item) => stripHatenaKeywordLinks(item));
+	}
+
+	if (!value || typeof value !== "object") {
+		return value;
+	}
+
+	const resolved = Object.fromEntries(
+		Object.entries(value).map(([key, entry]) => [key, stripHatenaKeywordLinks(entry)]),
+	);
+
+	if (resolved._type !== "block" || !Array.isArray(resolved.markDefs)) {
+		return resolved;
+	}
+
+	const removedKeys = new Set(
+		resolved.markDefs
+			.filter((markDef) => isHatenaKeywordHref(markDef?.href))
+			.map((markDef) => markDef._key)
+			.filter(Boolean),
+	);
+
+	if (removedKeys.size === 0) {
+		return resolved;
+	}
+
+	return {
+		...resolved,
+		markDefs: resolved.markDefs.filter((markDef) => !removedKeys.has(markDef?._key)),
+		children: Array.isArray(resolved.children)
+			? resolved.children.map((child) => {
+					if (!Array.isArray(child?.marks)) {
+						return child;
+					}
+					return {
+						...child,
+						marks: child.marks.filter((mark) => !removedKeys.has(mark)),
+					};
+				})
+			: resolved.children,
+	};
+}
+
 function storageKeyFromUrl(url) {
 	if (typeof url !== "string" || !url.startsWith(LOCAL_MEDIA_BASE)) {
 		return undefined;
 	}
 	return url.slice(LOCAL_MEDIA_BASE.length);
+}
+
+function isHatenaKeywordHref(value) {
+	return (
+		typeof value === "string" &&
+		/^https?:\/\/d\.hatena\.ne\.jp\/keyword\//i.test(value)
+	);
 }
 
 function mapTermLabels(labels, registry, prefix) {

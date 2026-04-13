@@ -10,8 +10,12 @@
     "deploy": "wrangler deploy",
     "typecheck": "astro check",
     "import:hatena": "node scripts/import-hatena-posts.mjs",
+    "seed:local": "npx emdash seed seed/seed.json --database ./data.db --on-conflict update",
+    "refresh:hatena-local": "node scripts/import-hatena-posts.mjs && npx emdash seed seed/seed.json --database ./data.db --on-conflict update && node scripts/sync-hatena-published-at.mjs --local",
     "sync:hatena-media": "node scripts/sync-hatena-media.mjs",
-    "sync:hatena-published-at": "node scripts/sync-hatena-published-at.mjs"
+    "sync:hatena-published-at": "node scripts/sync-hatena-published-at.mjs",
+    "sync:hatena-content-remote": "node scripts/sync-hatena-content-remote.mjs --remote",
+    "refresh:hatena-production": "npm run refresh:hatena-local && node scripts/sync-hatena-media.mjs && node scripts/sync-hatena-content-remote.mjs --remote"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.1.6",
