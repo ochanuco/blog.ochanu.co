@@ -1,10 +1,16 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "my-emdash-site",
+	"name": "ochanuco-blog",
 	"main": "./src/worker.ts",
 	"compatibility_date": "2026-03-29",
 	"compatibility_flags": [
 		"nodejs_compat"
+	],
+	"routes": [
+		{
+			"pattern": "blog.ochanu.co/*",
+			"custom_domain": true
+		}
 	],
 	"d1_databases": [
 		{

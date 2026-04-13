@@ -12,6 +12,7 @@ const publicAssetsRoot = path.join(repoRoot, "public", "hatena-assets");
 const seedPath = path.join(repoRoot, "seed", "seed.json");
 const publishedDatesPath = path.join(repoRoot, ".local", "hatena-published-dates.json");
 const mediaManifestPath = path.join(repoRoot, ".local", "hatena-media-manifest.json");
+const legacySlugsPath = path.join(repoRoot, ".local", "hatena-legacy-slugs.json");
 const converterModulePath = path.join(
 	repoRoot,
 	"node_modules",
@@ -41,6 +42,7 @@ async function main() {
 		tag: new Map(),
 	};
 	const publishedDates = {};
+	const legacySlugs = [];
 	const mediaRegistry = new Map();
 
 	await rm(publicAssetsRoot, { recursive: true, force: true });
@@ -50,6 +52,8 @@ async function main() {
 	for (const filePath of markdownFiles) {
 		const markdown = await readFile(filePath, "utf8");
 		const { frontmatter, body } = parseMarkdownFile(markdown, filePath);
+		const slug = slugFromPublishedAt(frontmatter.date);
+		legacySlugs.push(String(frontmatter.slug));
 		const assetPrefix = String(frontmatter.assets_dir || "").replace(/^assets\//, "");
 		const rewrittenBody = rewriteAssetUrls(body, assetPrefix);
 
@@ -59,7 +63,9 @@ async function main() {
 				excerptHtml ? extractText(excerptHtml) : firstNonEmptyLine(extractText(contentHtml)),
 			) || undefined;
 		const rawContentBlocks = gutenbergToPortableText(contentHtml);
-		const contentBlocks = await materializeMediaReferences(rawContentBlocks, mediaRegistry);
+		const contentBlocks = stripHatenaKeywordLinks(
+			await materializeMediaReferences(rawContentBlocks, mediaRegistry),
+		);
 		const featuredImage = findFeaturedImage(contentBlocks, frontmatter.title);
 
 		const categories = mapTermLabels(
@@ -68,11 +74,11 @@ async function main() {
 			"category",
 		);
 		const tags = mapTermLabels(frontmatter.tags ?? [], importedTerms.tag, "tag");
-		publishedDates[frontmatter.slug] = frontmatter.date;
+		publishedDates[slug] = frontmatter.date;
 
 		importedPosts.push({
-			id: `hatena-${frontmatter.slug}`,
-			slug: frontmatter.slug,
+			id: `hatena-${slug}`,
+			slug,
 			status: frontmatter.status === "draft" ? "draft" : "published",
 			data: {
 				title: frontmatter.title,
@@ -101,6 +107,7 @@ async function main() {
 	await writeFile(seedPath, `${JSON.stringify(seed, null, "\t")}\n`, "utf8");
 	await writeFile(publishedDatesPath, `${JSON.stringify(publishedDates, null, 2)}\n`, "utf8");
 	await writeFile(mediaManifestPath, `${JSON.stringify(mediaManifest, null, 2)}\n`, "utf8");
+	await writeFile(legacySlugsPath, `${JSON.stringify(unique(legacySlugs).sort(), null, 2)}\n`, "utf8");
 
 	console.log(
 		[
@@ -226,6 +233,16 @@ function normalizeWhitespace(text) {
 	return text.replace(/\s+/g, " ").trim();
 }
 
+function slugFromPublishedAt(value) {
+	const match = String(value).match(
+		/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/,
+	);
+	if (!match) {
+		throw new Error(`invalid published_at format: ${value}`);
+	}
+	return match.slice(1).join("");
+}
+
 async function materializeMediaReferences(value, mediaRegistry) {
 	if (Array.isArray(value)) {
 		return Promise.all(value.map((item) => materializeMediaReferences(item, mediaRegistry)));
@@ -333,11 +350,63 @@ function findFeaturedImage(blocks, fallbackAlt) {
 	};
 }
 
+function stripHatenaKeywordLinks(value) {
+	if (Array.isArray(value)) {
+		return value.map((item) => stripHatenaKeywordLinks(item));
+	}
+
+	if (!value || typeof value !== "object") {
+		return value;
+	}
+
+	const resolved = Object.fromEntries(
+		Object.entries(value).map(([key, entry]) => [key, stripHatenaKeywordLinks(entry)]),
+	);
+
+	if (resolved._type !== "block" || !Array.isArray(resolved.markDefs)) {
+		return resolved;
+	}
+
+	const removedKeys = new Set(
+		resolved.markDefs
+			.filter((markDef) => isHatenaKeywordHref(markDef?.href))
+			.map((markDef) => markDef._key)
+			.filter(Boolean),
+	);
+
+	if (removedKeys.size === 0) {
+		return resolved;
+	}
+
+	return {
+		...resolved,
+		markDefs: resolved.markDefs.filter((markDef) => !removedKeys.has(markDef?._key)),
+		children: Array.isArray(resolved.children)
+			? resolved.children.map((child) => {
+					if (!Array.isArray(child?.marks)) {
+						return child;
+					}
+					return {
+						...child,
+						marks: child.marks.filter((mark) => !removedKeys.has(mark)),
+					};
+				})
+			: resolved.children,
+	};
+}
+
 function storageKeyFromUrl(url) {
 	if (typeof url !== "string" || !url.startsWith(LOCAL_MEDIA_BASE)) {
 		return undefined;
 	}
 	return url.slice(LOCAL_MEDIA_BASE.length);
+}
+
+function isHatenaKeywordHref(value) {
+	return (
+		typeof value === "string" &&
+		/^https?:\/\/d\.hatena\.ne\.jp\/keyword\//i.test(value)
+	);
 }
 
 function mapTermLabels(labels, registry, prefix) {
