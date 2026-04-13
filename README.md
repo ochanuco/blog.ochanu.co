@@ -60,30 +60,6 @@ pnpm deploy
 
 Or click the deploy button above to set up the project in your Cloudflare account.
 
-## Hatena Sync
-
-Hatena import data is refreshed in two stages:
-
-```bash
-npm run refresh:hatena-local
-```
-
-This regenerates `seed/seed.json`, reapplies it to `data.db`, and then restores the original Hatena `published_at` values in local SQLite.
-
-To push the same content to production D1/R2:
-
-```bash
-npm run refresh:hatena-production
-```
-
-This runs the local refresh first, uploads Hatena media to R2, and then upserts Hatena posts/media/taxonomy assignments into remote D1 using the current `data.db` as the source of truth.
-
-Required environment variables for production sync:
-
-- `CLOUDFLARE_API_TOKEN`
-
-The generated remote SQL is written to `.local/hatena-remote-content-sync.sql` before execution.
-
 ## See Also
 
 - [Node.js variant](../blog) -- same template using SQLite and local file storage
