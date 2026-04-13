@@ -7,6 +7,7 @@ const repoRoot = path.resolve(new URL("..", import.meta.url).pathname);
 const dbPath = path.join(repoRoot, "data.db");
 const publishedDatesPath = path.join(repoRoot, ".local", "hatena-published-dates.json");
 const mediaManifestPath = path.join(repoRoot, ".local", "hatena-media-manifest.json");
+const legacySlugsPath = path.join(repoRoot, ".local", "hatena-legacy-slugs.json");
 const defaultSqlPath = path.join(repoRoot, ".local", "hatena-remote-content-sync.sql");
 const d1Binding = process.env.HATENA_D1_BINDING || "DB";
 
@@ -21,6 +22,7 @@ await mkdir(path.dirname(sqlPath), { recursive: true });
 const localDb = new Database(dbPath, { readonly: true });
 const hatenaSlugs = Object.keys(JSON.parse(await readFile(publishedDatesPath, "utf8"))).sort();
 const mediaManifest = JSON.parse(await readFile(mediaManifestPath, "utf8"));
+const legacySlugs = JSON.parse(await readFile(legacySlugsPath, "utf8")).sort();
 
 const posts = getHatenaPosts(localDb, hatenaSlugs);
 const media = getHatenaMedia(localDb, mediaManifest);
@@ -30,7 +32,15 @@ const publishedAtValues = [...new Set(posts.map((post) => post.published_at).fil
 
 localDb.close();
 
-const sqlText = buildSyncSql({ posts, media, taxonomies, taxonomyAssignments, publishedAtValues });
+const sqlText = buildSyncSql({
+	posts,
+	media,
+	taxonomies,
+	taxonomyAssignments,
+	publishedAtValues,
+	legacySlugs,
+	useTransaction: !applyRemote,
+});
 await writeFile(sqlPath, sqlText, "utf8");
 
 if (applyLocal) {
@@ -54,6 +64,7 @@ console.log(
 			taxonomies: taxonomies.length,
 				assignments: taxonomyAssignments.length,
 				publishedAtValues: publishedAtValues.length,
+				legacySlugs: legacySlugs.length,
 			mode: applyRemote ? "remote" : applyLocal ? "local" : "write-only",
 			d1Binding: applyRemote ? d1Binding : null,
 			localDatabase: applyLocal ? localTargetDb : null,
@@ -133,22 +144,29 @@ function getHatenaTaxonomyAssignments(db, slugs) {
 		.all(...slugs);
 }
 
-function buildSyncSql({ posts, media, taxonomies, taxonomyAssignments, publishedAtValues }) {
+function buildSyncSql({
+	posts,
+	media,
+	taxonomies,
+	taxonomyAssignments,
+	publishedAtValues,
+	legacySlugs,
+	useTransaction,
+}) {
 	const statements = [
-		"PRAGMA defer_foreign_keys = ON;",
-		"BEGIN TRANSACTION;",
+		...(useTransaction ? ["PRAGMA defer_foreign_keys = ON;", "BEGIN TRANSACTION;"] : []),
 		"-- Hatena media",
 		...media.map((row) => buildMediaUpsert(row)),
 		"-- Remove old Hatena taxonomy assignments and posts before reinsert",
-		buildDeleteAssignmentsByPublishedAt(publishedAtValues),
-		buildDeletePostsByPublishedAt(publishedAtValues),
+		buildDeleteAssignments({ publishedAtValues, legacySlugs }),
+		buildDeletePosts({ publishedAtValues, legacySlugs }),
 		"-- Hatena posts",
 		...posts.map((row) => buildPostUpsert(row)),
 		"-- Hatena taxonomies",
 		...taxonomies.map((row) => buildTaxonomyUpsert(row)),
 		"-- Recreate taxonomy assignments for synced posts",
 		...taxonomyAssignments.map((row) => buildAssignmentInsert(row)),
-		"COMMIT;",
+		...(useTransaction ? ["COMMIT;"] : []),
 	];
 
 	return `${statements.filter(Boolean).join("\n")}\n`;
@@ -245,29 +263,39 @@ function buildPostUpsert(row) {
 	].join(" ");
 }
 
-function buildDeleteAssignmentsByPublishedAt(publishedAtValues) {
-	if (publishedAtValues.length === 0) {
+function buildDeleteAssignments({ publishedAtValues, legacySlugs }) {
+	if (publishedAtValues.length === 0 && legacySlugs.length === 0) {
 		return null;
 	}
 
-	const values = publishedAtValues.map((value) => sql(value)).join(", ");
+	const whereSql = buildLegacyPostWhere({ publishedAtValues, legacySlugs });
 	return [
 		"DELETE FROM content_taxonomies",
 		"WHERE collection = 'posts'",
 		"AND entry_id IN (",
 		"  SELECT id FROM ec_posts",
-		`  WHERE published_at IN (${values})`,
+		`  WHERE ${whereSql}`,
 		");",
 	].join(" ");
 }
 
-function buildDeletePostsByPublishedAt(publishedAtValues) {
-	if (publishedAtValues.length === 0) {
+function buildDeletePosts({ publishedAtValues, legacySlugs }) {
+	if (publishedAtValues.length === 0 && legacySlugs.length === 0) {
 		return null;
 	}
 
-	const values = publishedAtValues.map((value) => sql(value)).join(", ");
-	return `DELETE FROM ec_posts WHERE published_at IN (${values});`;
+	return `DELETE FROM ec_posts WHERE ${buildLegacyPostWhere({ publishedAtValues, legacySlugs })};`;
+}
+
+function buildLegacyPostWhere({ publishedAtValues, legacySlugs }) {
+	const clauses = [];
+	if (publishedAtValues.length > 0) {
+		clauses.push(`published_at IN (${publishedAtValues.map((value) => sql(value)).join(", ")})`);
+	}
+	if (legacySlugs.length > 0) {
+		clauses.push(`slug IN (${legacySlugs.map((value) => sql(value)).join(", ")})`);
+	}
+	return clauses.join(" OR ");
 }
 
 function buildTaxonomyUpsert(row) {

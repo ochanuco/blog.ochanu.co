@@ -12,6 +12,7 @@ const publicAssetsRoot = path.join(repoRoot, "public", "hatena-assets");
 const seedPath = path.join(repoRoot, "seed", "seed.json");
 const publishedDatesPath = path.join(repoRoot, ".local", "hatena-published-dates.json");
 const mediaManifestPath = path.join(repoRoot, ".local", "hatena-media-manifest.json");
+const legacySlugsPath = path.join(repoRoot, ".local", "hatena-legacy-slugs.json");
 const converterModulePath = path.join(
 	repoRoot,
 	"node_modules",
@@ -41,6 +42,7 @@ async function main() {
 		tag: new Map(),
 	};
 	const publishedDates = {};
+	const legacySlugs = [];
 	const mediaRegistry = new Map();
 
 	await rm(publicAssetsRoot, { recursive: true, force: true });
@@ -51,6 +53,7 @@ async function main() {
 		const markdown = await readFile(filePath, "utf8");
 		const { frontmatter, body } = parseMarkdownFile(markdown, filePath);
 		const slug = slugFromPublishedAt(frontmatter.date);
+		legacySlugs.push(String(frontmatter.slug));
 		const assetPrefix = String(frontmatter.assets_dir || "").replace(/^assets\//, "");
 		const rewrittenBody = rewriteAssetUrls(body, assetPrefix);
 
@@ -104,6 +107,7 @@ async function main() {
 	await writeFile(seedPath, `${JSON.stringify(seed, null, "\t")}\n`, "utf8");
 	await writeFile(publishedDatesPath, `${JSON.stringify(publishedDates, null, 2)}\n`, "utf8");
 	await writeFile(mediaManifestPath, `${JSON.stringify(mediaManifest, null, 2)}\n`, "utf8");
+	await writeFile(legacySlugsPath, `${JSON.stringify(unique(legacySlugs).sort(), null, 2)}\n`, "utf8");
 
 	console.log(
 		[
