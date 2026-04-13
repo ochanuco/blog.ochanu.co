@@ -26,10 +26,11 @@ const posts = getHatenaPosts(localDb, hatenaSlugs);
 const media = getHatenaMedia(localDb, mediaManifest);
 const taxonomies = getHatenaTaxonomies(localDb, hatenaSlugs);
 const taxonomyAssignments = getHatenaTaxonomyAssignments(localDb, hatenaSlugs);
+const publishedAtValues = [...new Set(posts.map((post) => post.published_at).filter(Boolean))].sort();
 
 localDb.close();
 
-const sqlText = buildSyncSql({ posts, media, taxonomies, taxonomyAssignments });
+const sqlText = buildSyncSql({ posts, media, taxonomies, taxonomyAssignments, publishedAtValues });
 await writeFile(sqlPath, sqlText, "utf8");
 
 if (applyLocal) {
@@ -51,7 +52,8 @@ console.log(
 			posts: posts.length,
 			media: media.length,
 			taxonomies: taxonomies.length,
-			assignments: taxonomyAssignments.length,
+				assignments: taxonomyAssignments.length,
+				publishedAtValues: publishedAtValues.length,
 			mode: applyRemote ? "remote" : applyLocal ? "local" : "write-only",
 			d1Binding: applyRemote ? d1Binding : null,
 			localDatabase: applyLocal ? localTargetDb : null,
@@ -131,16 +133,17 @@ function getHatenaTaxonomyAssignments(db, slugs) {
 		.all(...slugs);
 }
 
-function buildSyncSql({ posts, media, taxonomies, taxonomyAssignments }) {
+function buildSyncSql({ posts, media, taxonomies, taxonomyAssignments, publishedAtValues }) {
 	const statements = [
 		"PRAGMA defer_foreign_keys = ON;",
 		"BEGIN TRANSACTION;",
 		"-- Hatena media",
 		...media.map((row) => buildMediaUpsert(row)),
+		"-- Remove old Hatena taxonomy assignments and posts before reinsert",
+		buildDeleteAssignmentsByPublishedAt(publishedAtValues),
+		buildDeletePostsByPublishedAt(publishedAtValues),
 		"-- Hatena posts",
 		...posts.map((row) => buildPostUpsert(row)),
-		"-- Remove old taxonomy assignments for synced posts",
-		buildDeleteAssignments(posts),
 		"-- Hatena taxonomies",
 		...taxonomies.map((row) => buildTaxonomyUpsert(row)),
 		"-- Recreate taxonomy assignments for synced posts",
@@ -242,20 +245,29 @@ function buildPostUpsert(row) {
 	].join(" ");
 }
 
-function buildDeleteAssignments(posts) {
-	if (posts.length === 0) {
+function buildDeleteAssignmentsByPublishedAt(publishedAtValues) {
+	if (publishedAtValues.length === 0) {
 		return null;
 	}
 
-	const tuples = posts.map((post) => `(${sql(post.slug)}, ${sql(post.locale)})`).join(", ");
+	const values = publishedAtValues.map((value) => sql(value)).join(", ");
 	return [
 		"DELETE FROM content_taxonomies",
 		"WHERE collection = 'posts'",
 		"AND entry_id IN (",
 		"  SELECT id FROM ec_posts",
-		`  WHERE (slug, locale) IN (${tuples})`,
+		`  WHERE published_at IN (${values})`,
 		");",
 	].join(" ");
+}
+
+function buildDeletePostsByPublishedAt(publishedAtValues) {
+	if (publishedAtValues.length === 0) {
+		return null;
+	}
+
+	const values = publishedAtValues.map((value) => sql(value)).join(", ");
+	return `DELETE FROM ec_posts WHERE published_at IN (${values});`;
 }
 
 function buildTaxonomyUpsert(row) {

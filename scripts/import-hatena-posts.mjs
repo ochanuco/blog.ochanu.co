@@ -50,6 +50,7 @@ async function main() {
 	for (const filePath of markdownFiles) {
 		const markdown = await readFile(filePath, "utf8");
 		const { frontmatter, body } = parseMarkdownFile(markdown, filePath);
+		const slug = slugFromPublishedAt(frontmatter.date);
 		const assetPrefix = String(frontmatter.assets_dir || "").replace(/^assets\//, "");
 		const rewrittenBody = rewriteAssetUrls(body, assetPrefix);
 
@@ -70,11 +71,11 @@ async function main() {
 			"category",
 		);
 		const tags = mapTermLabels(frontmatter.tags ?? [], importedTerms.tag, "tag");
-		publishedDates[frontmatter.slug] = frontmatter.date;
+		publishedDates[slug] = frontmatter.date;
 
 		importedPosts.push({
-			id: `hatena-${frontmatter.slug}`,
-			slug: frontmatter.slug,
+			id: `hatena-${slug}`,
+			slug,
 			status: frontmatter.status === "draft" ? "draft" : "published",
 			data: {
 				title: frontmatter.title,
@@ -226,6 +227,16 @@ function firstNonEmptyLine(text) {
 
 function normalizeWhitespace(text) {
 	return text.replace(/\s+/g, " ").trim();
+}
+
+function slugFromPublishedAt(value) {
+	const match = String(value).match(
+		/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/,
+	);
+	if (!match) {
+		throw new Error(`invalid published_at format: ${value}`);
+	}
+	return match.slice(1).join("");
 }
 
 async function materializeMediaReferences(value, mediaRegistry) {
