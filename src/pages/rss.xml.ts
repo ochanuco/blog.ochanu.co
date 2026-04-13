@@ -1,15 +1,16 @@
 import type { APIRoute } from "astro";
-import { getEmDashCollection } from "emdash";
+import { getEmDashCollection, getSiteSettings } from "emdash";
 import {
 	comparePublishedDateDesc,
 	getPublishedDate,
 } from "../utils/post-date";
-
-const siteTitle = "My Blog";
-const siteDescription = "A blog about software, design, and the occasional stray thought.";
+import { FALLBACK_SITE_TITLE, FALLBACK_SITE_TAGLINE } from "../constants/site";
 
 export const GET: APIRoute = async ({ site, url }) => {
 	const siteUrl = site?.toString() || url.origin;
+	const settings = await getSiteSettings();
+	const siteTitle = settings.title || FALLBACK_SITE_TITLE;
+	const siteDescription = settings.tagline || FALLBACK_SITE_TAGLINE;
 
 	const { entries: posts } = await getEmDashCollection("posts");
 
