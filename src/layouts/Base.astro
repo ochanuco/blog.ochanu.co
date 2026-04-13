@@ -9,6 +9,7 @@ import {
 import { createPublicPageContext } from "emdash/page";
 import LiveSearch from "emdash/ui/search";
 import "../styles/theme.css";
+import { FALLBACK_SITE_TITLE, FALLBACK_SITE_TAGLINE } from "../constants/site";
 
 interface Props {
 	title: string;
@@ -37,8 +38,8 @@ const {
 	content,
 } = Astro.props;
 const settings = await getSiteSettings();
-const siteTitle = settings.title || "おちゃぬこさいさい";
-const siteTagline = settings.tagline || "Thoughts on building for the web";
+const siteTitle = settings.title || FALLBACK_SITE_TITLE;
+const siteTagline = settings.tagline || FALLBACK_SITE_TAGLINE;
 // If title already includes site title (from getSeoMeta), use as-is
 const fullTitle = title.includes(siteTitle) ? title : `${title} — ${siteTitle}`;
 

@@ -4,13 +4,13 @@ import {
 	comparePublishedDateDesc,
 	getPublishedDate,
 } from "../utils/post-date";
+import { FALLBACK_SITE_TITLE, FALLBACK_SITE_TAGLINE } from "../constants/site";
 
 export const GET: APIRoute = async ({ site, url }) => {
 	const siteUrl = site?.toString() || url.origin;
 	const settings = await getSiteSettings();
-	const siteTitle = settings.title || "おちゃぬこさいさい";
-	const siteDescription =
-		settings.tagline || "A blog about software, design, and the occasional stray thought.";
+	const siteTitle = settings.title || FALLBACK_SITE_TITLE;
+	const siteDescription = settings.tagline || FALLBACK_SITE_TAGLINE;
 
 	const { entries: posts } = await getEmDashCollection("posts");
 

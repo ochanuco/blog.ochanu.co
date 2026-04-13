@@ -8,11 +8,12 @@ import {
 	getPublishedDate,
 } from "../utils/post-date";
 import { getReadingTime } from "../utils/reading-time";
+import { FALLBACK_SITE_TITLE, FALLBACK_SITE_TAGLINE } from "../constants/site";
 
 const { entries: posts, cacheHint } = await getEmDashCollection("posts");
 const settings = await getSiteSettings();
-const siteTitle = settings.title || "おちゃぬこさいさい";
-const siteTagline = settings.tagline || "Welcome to my blog";
+const siteTitle = settings.title || FALLBACK_SITE_TITLE;
+const siteTagline = settings.tagline || FALLBACK_SITE_TAGLINE;
 
 Astro.cache.set(cacheHint);
 
