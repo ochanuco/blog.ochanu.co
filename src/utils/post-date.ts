@@ -6,6 +6,19 @@ type EntryLike =
 	| null
 	| undefined;
 
+function readDateLike(source: unknown, key: "published_at" | "publishedAt"): DateLike {
+	if (!source || typeof source !== "object") {
+		return undefined;
+	}
+
+	const value = (source as Record<string, unknown>)[key];
+	if (value instanceof Date || typeof value === "string" || value == null) {
+		return value as DateLike;
+	}
+
+	return undefined;
+}
+
 function toDate(value: DateLike): Date | null {
 	if (value instanceof Date) {
 		return Number.isNaN(value.getTime()) ? null : value;
@@ -23,8 +36,11 @@ export function getPublishedDate(entry: EntryLike): Date | null {
 		return null;
 	}
 
-	const data = "data" in entry && entry.data ? entry.data : entry;
-	return toDate(data.published_at) ?? toDate(data.publishedAt);
+	const source = "data" in entry && entry.data ? entry.data : entry;
+	return (
+		toDate(readDateLike(source, "published_at")) ??
+		toDate(readDateLike(source, "publishedAt"))
+	);
 }
 
 export function comparePublishedDateDesc(a: EntryLike, b: EntryLike): number {
