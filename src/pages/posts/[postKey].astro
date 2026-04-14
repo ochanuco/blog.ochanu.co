@@ -19,13 +19,13 @@ import {
 } from "../../utils/post-date";
 import { getReadingTime } from "../../utils/reading-time";
 
-const { slug } = Astro.params;
+const { postKey } = Astro.params;
 
-if (!slug) {
+if (!postKey) {
 	return Astro.redirect("/404");
 }
 
-const { entry: post, cacheHint } = await getEmDashEntry("posts", slug);
+const { entry: post, cacheHint } = await getEmDashEntry("posts", postKey);
 
 if (!post) {
 	return Astro.redirect("/404");
@@ -62,7 +62,7 @@ const siteTitle = settings.title || "おちゃぬこさいさい";
 const seo = getSeoMeta(post, {
 	siteTitle,
 	siteUrl: Astro.url.origin,
-	path: `/posts/${slug}`,
+	path: `/posts/${postKey}`,
 	defaultOgImage: featuredImageUrl,
 });
 
@@ -111,7 +111,7 @@ const publishDate =
 	type="article"
 	publishedTime={publishedAt?.toISOString() ?? null}
 	modifiedTime={post.data.updatedAt.toISOString()}
-	content={{ collection: "posts", id: post.data.id, slug }}
+	content={{ collection: "posts", id: post.data.id, slug: postKey }}
 >
 	<article class="article">
 		{/* Hero: Full-width featured image */}
