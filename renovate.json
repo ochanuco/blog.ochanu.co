@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "minimumReleaseAge": "7 days",
+  "separateMajorMinor": true,
+  "packageRules": [
+    {
+      "description": "本番依存の非メジャー更新をまとめる",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "non-major dependencies",
+      "groupSlug": "non-major-dependencies"
+    },
+    {
+      "description": "devDependencies の非メジャー更新を本番依存と分けてまとめる",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "devDependencies",
+      "groupSlug": "devdependencies"
+    }
+  ]
+}
