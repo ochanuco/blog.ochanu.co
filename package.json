@@ -27,9 +27,5 @@
     "@cloudflare/workers-types": "^4.20260401.1",
     "better-sqlite3": "^12.8.0",
     "wrangler": "^4.79.0"
-  },
-  "emdash": {
-    "label": "Blog",
-    "seed": "seed/seed.json"
   }
 }
