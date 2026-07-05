@@ -2,7 +2,7 @@ import cloudflare from "@astrojs/cloudflare";
 import node from "@astrojs/node";
 import react from "@astrojs/react";
 import { formsPlugin } from "@emdash-cms/plugin-forms";
-import { webhookNotifierPlugin } from "@emdash-cms/plugin-webhook-notifier";
+import webhookNotifier from "@emdash-cms/plugin-webhook-notifier";
 import { defineConfig } from "astro/config";
 import emdash, { local } from "emdash/astro";
 import { sqlite } from "emdash/db";
@@ -38,7 +38,7 @@ export default defineConfig({
 			...(isLocalDev
 				? {}
 				: {
-						sandboxed: [webhookNotifierPlugin()],
+						sandboxed: [webhookNotifier],
 						sandboxRunner: cloudflareEmdash.sandbox(),
 						marketplace: "https://marketplace.emdashcms.com",
 					}),
