@@ -34,6 +34,11 @@ export default defineConfig({
 		emdash({
 			database,
 			storage,
+			// パスキーの RP ID を blog.ochanu.co に固定しつつ、
+			// admin サブドメインからのログインを許可する(apex+サブドメイン構成)。
+			// blog.ochanu.co 時代に登録済みのパスキーがそのまま使える。
+			siteUrl: "https://blog.ochanu.co",
+			allowedOrigins: ["https://admin.blog.ochanu.co"],
 			plugins: [formsPlugin()],
 			...(isLocalDev
 				? {}
