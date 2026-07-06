@@ -22,6 +22,8 @@ pnpm deploy:static     # Deploy dist-static/ as the public static worker
 
 Search is client-side Pagefind on `/search` — it only works on the generated static site (the `/pagefind/` bundle does not exist on the SSR worker). Do not reintroduce request-time features (live search, forms, comments) on public pages; they break when frozen.
 
+Passkeys: `astro.config.mjs` pins the WebAuthn RP ID to `blog.ochanu.co` via `siteUrl` + `allowedOrigins` (apex + admin subdomain). `patches/emdash@0.27.0.patch` fixes an upstream bug where `allowedOrigins` was dropped from the serialized runtime config — check whether the fix landed upstream before bumping emdash.
+
 ## Key Files
 
 | File                     | Purpose                                                                            |

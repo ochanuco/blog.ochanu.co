@@ -3,3 +3,5 @@ allowBuilds:
   esbuild: true
   sharp: true
   workerd: true
+patchedDependencies:
+  emdash: patches/emdash.patch
