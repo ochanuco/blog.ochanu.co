@@ -10,7 +10,9 @@
 	"preview_urls": true,
 	"routes": [
 		{
-			"pattern": "blog.ochanu.co",
+			// 管理画面 + 静的サイト生成元。公開面は wrangler.static.jsonc の
+			// ochanuco-blog-static (blog.ochanu.co) が担う
+			"pattern": "admin.blog.ochanu.co",
 			"custom_domain": true
 		}
 	],

@@ -113,7 +113,8 @@ const publishDate =
 	modifiedTime={post.data.updatedAt.toISOString()}
 	content={{ collection: "posts", id: post.data.id, slug: postKey }}
 >
-	<article class="article">
+	{/* data-pagefind-body: 静的検索(Pagefind)のインデックス対象を記事本文に限定 */}
+	<article class="article" data-pagefind-body>
 		{/* Hero: Full-width featured image */}
 		{
 			post.data.featured_image && (
