@@ -1,5 +1,7 @@
 name: Generate static site
 
+# 公開サイト(blog.ochanu.co)の静的生成+デプロイ。
+# 手動実行: gh workflow run generate-static.yml
 on:
   schedule:
     # 毎日 05:00 JST (20:00 UTC)
