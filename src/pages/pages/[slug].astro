@@ -22,7 +22,7 @@ Astro.cache.set(cacheHint);
 	title={page.data.title}
 	content={{ collection: "pages", id: page.data.id, slug }}
 >
-	<article class="page-article">
+	<article class="page-article" data-pagefind-body>
 		<header class="page-header">
 			<h1 class="page-title" {...page.edit.title}>{page.data.title}</h1>
 		</header>

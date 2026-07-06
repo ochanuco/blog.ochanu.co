@@ -9,6 +9,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "wrangler deploy",
+    "generate:static": "bash scripts/generate-static.sh",
+    "deploy:static": "wrangler deploy -c wrangler.static.jsonc",
     "typecheck": "astro check"
   },
   "dependencies": {
@@ -27,6 +29,7 @@
     "@astrojs/node": "^11.0.2",
     "@cloudflare/workers-types": "^4.20260701.1",
     "better-sqlite3": "^12.8.0",
+    "pagefind": "^1.5.2",
     "wrangler": "^4.83.0"
   }
 }

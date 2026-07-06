@@ -9,6 +9,19 @@ npx emdash types      # Regenerate TypeScript types from schema
 
 The admin UI is at `http://localhost:4321/_emdash/admin`.
 
+## Architecture: Static Delivery
+
+The public site (`blog.ochanu.co`) is **static** — an assets-only Worker (`wrangler.static.jsonc`, name `ochanuco-blog-static`). The EmDash SSR Worker (`wrangler.jsonc`) serves only `admin.blog.ochanu.co` (admin UI + generation origin; D1/R2 live behind it).
+
+```bash
+pnpm generate:static   # Crawl ORIGIN (default admin.blog.ochanu.co) into dist-static/ + build Pagefind index
+pnpm deploy:static     # Deploy dist-static/ as the public static worker
+```
+
+`.github/workflows/generate-static.yml` runs generate+deploy daily (05:00 JST) and on manual dispatch; requires the `CLOUDFLARE_API_TOKEN` repo secret.
+
+Search is client-side Pagefind on `/search` — it only works on the generated static site (the `/pagefind/` bundle does not exist on the SSR worker). Do not reintroduce request-time features (live search, forms, comments) on public pages; they break when frozen.
+
 ## Key Files
 
 | File                     | Purpose                                                                            |

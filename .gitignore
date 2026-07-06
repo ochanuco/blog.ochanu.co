@@ -1,6 +1,7 @@
 node_modules/
 .astro/
 dist/
+dist-static/
 .wrangler/
 
 uploads/
