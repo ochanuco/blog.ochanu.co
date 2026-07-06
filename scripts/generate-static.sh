@@ -64,6 +64,16 @@ find "$OUT" \( -name '*.html' -o -name '*.xml' -o -name '*.txt' \) -print0 |
 		-e "s|http://${PUBLIC_HOST}|https://${PUBLIC_HOST}|g"
 find "$OUT" -name '*.orig' -delete
 
+# EmDash のサイト URL 設定が apex (ochanu.co) を指しているため、
+# sitemap / robots に限り公開ホストへ補正する(記事本文中の apex への
+# 正当なリンクを壊さないよう対象ファイルを絞る)。
+# 管理画面のサイト URL 設定を直せばこの補正は no-op になる。
+for f in "$OUT"/sitemap*.xml "$OUT"/robots.txt; do
+	[ -f "$f" ] || continue
+	sed -i.orig "s|https://ochanu\.co/|https://${PUBLIC_HOST}/|g" "$f"
+	rm -f "$f.orig"
+done
+
 echo "==> Pagefind インデックスを生成"
 pnpm exec pagefind --site "$OUT"
 
