@@ -80,7 +80,9 @@ const formattedDate = formatPublishedDate(date);
 						</>
 					)
 				}
-				{formattedDate && <time>{formattedDate}</time>}
+				{formattedDate && date && (
+					<time datetime={date.toISOString()}>{formattedDate}</time>
+				)}
 				{formattedDate && readingTime && <span class="meta-dot" />}
 				{readingTime && <span>{readingTime} min</span>}
 			</div>

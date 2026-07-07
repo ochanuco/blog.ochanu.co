@@ -159,7 +159,9 @@ const publishDate = formatPublishedDate(publishedAt);
 						publishDate && (
 							<div class="meta-block">
 								<span class="meta-label">Published</span>
-								<time class="meta-value">{publishDate}</time>
+								<time class="meta-value" datetime={publishedAt?.toISOString()}>
+									{publishDate}
+								</time>
 							</div>
 						)
 					}
@@ -206,7 +208,7 @@ const publishDate = formatPublishedDate(publishedAt);
 						{
 							publishDate && (
 								<>
-									<time>{publishDate}</time>
+									<time datetime={publishedAt?.toISOString()}>{publishDate}</time>
 									<span class="meta-dot" />
 								</>
 							)

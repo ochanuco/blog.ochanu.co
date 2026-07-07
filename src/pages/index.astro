@@ -23,6 +23,7 @@ const sortedPosts = posts.toSorted(comparePublishedDateDesc);
 // Find the first post with a featured image for the hero
 const featuredPost = sortedPosts.find((p) => p.data.featured_image);
 const featuredIndex = featuredPost ? sortedPosts.indexOf(featuredPost) : -1;
+const featuredPublishedAt = getPublishedDate(featuredPost);
 
 // Get remaining posts (exclude featured if found, limit to 6 for grid)
 const gridPosts = sortedPosts.filter((_, i) => i !== featuredIndex).slice(0, 6);
@@ -107,8 +108,10 @@ const formatDate = formatPublishedDate;
 											<span class="meta-dot" />
 										</>
 									)}
-									{formatDate(getPublishedDate(featuredPost)) && (
-										<time>{formatDate(getPublishedDate(featuredPost))}</time>
+									{featuredPublishedAt && (
+										<time datetime={featuredPublishedAt.toISOString()}>
+											{formatDate(featuredPublishedAt)}
+										</time>
 									)}
 									<span class="meta-dot" />
 									<span>
