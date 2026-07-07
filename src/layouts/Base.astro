@@ -107,7 +107,10 @@ const isLoggedIn = !!Astro.locals.user;
 		<EmDashBodyStart page={pageCtx} />
 		<header class="site-header">
 			<nav class="nav">
-				<a href="/" class="site-title">{siteTitle}</a>
+				<a href="/" class="site-title">
+					<span class="site-led" aria-hidden="true"></span>
+					<span class="site-title-text">{siteTitle}</span>
+				</a>
 				<div class="nav-right">
 					<form class="site-search" action="/search" method="get" role="search">
 						<input
@@ -371,23 +374,32 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			:root {
-				/* Colors - Light mode (default) */
-				--color-bg: #ffffff;
-				--color-bg-subtle: #fafafa;
-				--color-text: #1a1a1a;
-				--color-text-secondary: #525252;
-				--color-muted: #8b8b8b;
-				--color-border: #e5e5e5;
-				--color-border-subtle: #f0f0f0;
-				--color-surface: #f7f7f7;
-				--color-accent: #0066cc;
-				--color-accent-hover: #0052a3;
-				--color-on-accent: white;
+				/* Colors - Light mode (default)
+				   "phosphor + water" — cool ink ground, teal accent that reads
+				   as both terminal glow and aquarium water. */
+				--color-bg: #f3f6f8;
+				--color-bg-subtle: #e9edf1;
+				--color-text: #18202a;
+				--color-text-secondary: #3d4856;
+				--color-muted: #647180;
+				--color-border: #dbe2e9;
+				--color-border-subtle: #e8ecf1;
+				--color-surface: #ffffff;
+				--color-accent: #0f8a7d;
+				--color-accent-hover: #0b6f64;
+				--color-on-accent: #ffffff;
 				--color-accent-ring: color-mix(
 					in srgb,
 					var(--color-accent) 25%,
 					transparent
 				);
+
+				/* Category LEDs — teal for tinkering (infra/aquarium),
+				   amber for life events. Semantic, separate from the accent. */
+				--led-tech: var(--color-accent);
+				--led-life: #b9781a;
+				--led-life-dim: color-mix(in srgb, var(--led-life) 14%, transparent);
+				--accent-dim: color-mix(in srgb, var(--color-accent) 12%, transparent);
 
 				/* Typography */
 				--font-sans:
@@ -480,31 +492,33 @@ const isLoggedIn = !!Astro.locals.user;
 			/* Dark mode via system preference (when no explicit class) */
 			@media (prefers-color-scheme: dark) {
 				:root:not(.light) {
-					--color-bg: #0d0d0d;
-					--color-bg-subtle: #141414;
-					--color-text: #ededed;
-					--color-text-secondary: #a0a0a0;
-					--color-muted: #6b6b6b;
-					--color-border: #2a2a2a;
-					--color-border-subtle: #1f1f1f;
-					--color-surface: #181818;
-					--color-accent: #4d9fff;
-					--color-accent-hover: #6eb0ff;
+					--color-bg: #0e1319;
+					--color-bg-subtle: #0b0f14;
+					--color-text: #d8dfe8;
+					--color-text-secondary: #aeb9c6;
+					--color-muted: #7e8b9b;
+					--color-border: #232d39;
+					--color-border-subtle: #1b2530;
+					--color-surface: #161d26;
+					--color-accent: #4fd6c4;
+					--color-accent-hover: #7ee6d8;
+					--led-life: #e0a24a;
 				}
 			}
 
 			/* Explicit dark mode */
 			:root.dark {
-				--color-bg: #0d0d0d;
-				--color-bg-subtle: #141414;
-				--color-text: #ededed;
-				--color-text-secondary: #a0a0a0;
-				--color-muted: #6b6b6b;
-				--color-border: #2a2a2a;
-				--color-border-subtle: #1f1f1f;
-				--color-surface: #181818;
-				--color-accent: #4d9fff;
-				--color-accent-hover: #6eb0ff;
+				--color-bg: #0e1319;
+				--color-bg-subtle: #0b0f14;
+				--color-text: #d8dfe8;
+				--color-text-secondary: #aeb9c6;
+				--color-muted: #7e8b9b;
+				--color-border: #232d39;
+				--color-border-subtle: #1b2530;
+				--color-surface: #161d26;
+				--color-accent: #4fd6c4;
+				--color-accent-hover: #7ee6d8;
+				--led-life: #e0a24a;
 			}
 
 			html {
@@ -583,14 +597,46 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			.site-title {
-				font-size: var(--font-size-lg);
-				font-weight: 600;
+				display: inline-flex;
+				align-items: center;
+				gap: var(--spacing-2);
+				font-size: var(--font-size-base);
+				font-weight: 700;
 				color: var(--color-text);
 				text-decoration: none;
 				letter-spacing: var(--tracking-snug);
 			}
 
-			.site-title:hover {
+			/* Status LED — signals "online", ties the homelab concept together */
+			.site-led {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--color-accent);
+				flex: none;
+				animation: led-pulse 2.6s ease-out infinite;
+			}
+
+			@keyframes led-pulse {
+				0% {
+					box-shadow: 0 0 0 0
+						color-mix(in srgb, var(--color-accent) 55%, transparent);
+				}
+				70% {
+					box-shadow: 0 0 0 6px transparent;
+				}
+				100% {
+					box-shadow: 0 0 0 0 transparent;
+				}
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				.site-led {
+					animation: none;
+				}
+			}
+
+			.site-title:hover .site-title-text {
 				color: var(--color-accent);
 			}
 
@@ -603,12 +649,14 @@ const isLoggedIn = !!Astro.locals.user;
 			.nav-links {
 				display: flex;
 				gap: var(--spacing-5);
-				font-size: var(--font-size-sm);
+				font-family: var(--font-mono);
+				font-size: var(--font-size-xs);
+				letter-spacing: var(--tracking-wide);
 			}
 
 			.nav-links a {
 				text-decoration: none;
-				color: var(--color-text);
+				color: var(--color-text-secondary);
 				transition: color var(--transition-fast);
 			}
 
@@ -617,10 +665,11 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			.nav-admin {
-				font-size: var(--font-size-sm);
+				font-family: var(--font-mono);
+				font-size: var(--font-size-xs);
 				color: var(--color-muted);
 				text-decoration: none;
-				opacity: 0.5;
+				opacity: 0.6;
 				transition: opacity var(--transition-fast);
 			}
 
