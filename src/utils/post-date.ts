@@ -48,3 +48,22 @@ export function comparePublishedDateDesc(a: EntryLike, b: EntryLike): number {
 	const right = getPublishedDate(b)?.getTime() ?? 0;
 	return right - left;
 }
+
+/**
+ * Formats a published date as an absolute date + time (never relative,
+ * e.g. never "3 days ago") so it can be cross-referenced against external
+ * timestamps (logs, monitoring dashboards, etc).
+ */
+export function formatPublishedDate(
+	date: Date | null | undefined,
+	options?: { month?: "short" | "long" },
+): string | null {
+	if (!date) return null;
+	return date.toLocaleString("en-US", {
+		year: "numeric",
+		month: options?.month ?? "long",
+		day: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+	});
+}

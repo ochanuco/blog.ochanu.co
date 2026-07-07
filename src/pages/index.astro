@@ -5,6 +5,7 @@ import Base from "../layouts/Base.astro";
 import PostCard from "../components/PostCard.astro";
 import {
 	comparePublishedDateDesc,
+	formatPublishedDate,
 	getPublishedDate,
 } from "../utils/post-date";
 import { getReadingTime } from "../utils/reading-time";
@@ -51,15 +52,7 @@ const gridPostsWithTags = await Promise.all(
 	})
 );
 
-// Format date helper
-function formatDate(date: Date | null | undefined) {
-	if (!date) return null;
-	return date.toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
-}
+const formatDate = formatPublishedDate;
 ---
 
 <Base title={siteTitle} description={siteTagline}>
