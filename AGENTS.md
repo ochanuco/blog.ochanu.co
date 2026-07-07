@@ -36,7 +36,9 @@ Passkeys: `astro.config.mjs` pins the WebAuthn RP ID to `blog.ochanu.co` via `si
 
 ## Skills
 
-Agent skills are in `.agents/skills/`. Load them when working on specific tasks:
+Agent skills are in `.agents/skills/` (source of truth, git-tracked). `.claude/skills` is a local-only symlink to it (`../.agents/skills`) so Claude Code can discover them; it's gitignored (`**/.claude/` in global gitignore), so a fresh clone needs to recreate it: `mkdir -p .claude && ln -s ../.agents/skills .claude/skills`.
+
+Load them when working on specific tasks:
 
 - **building-emdash-site** -- Querying content, rendering Portable Text, schema design, seed files, site features (menus, widgets, search, SEO, comments, bylines). Start here.
 - **creating-plugins** -- Building EmDash plugins with hooks, storage, admin UI, API routes, and Portable Text block types.
