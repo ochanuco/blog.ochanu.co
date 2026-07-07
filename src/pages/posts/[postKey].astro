@@ -15,6 +15,7 @@ import Base from "../../layouts/Base.astro";
 import PostCard from "../../components/PostCard.astro";
 import {
 	comparePublishedDateDesc,
+	formatPublishedDate,
 	getPublishedDate,
 } from "../../utils/post-date";
 import { getReadingTime } from "../../utils/reading-time";
@@ -94,12 +95,7 @@ const otherPostsWithTags = await Promise.all(
 );
 
 const publishedAt = getPublishedDate(post);
-const publishDate =
-	publishedAt?.toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	}) ?? null;
+const publishDate = formatPublishedDate(publishedAt);
 ---
 
 <Base
@@ -163,7 +159,9 @@ const publishDate =
 						publishDate && (
 							<div class="meta-block">
 								<span class="meta-label">Published</span>
-								<time class="meta-value">{publishDate}</time>
+								<time class="meta-value" datetime={publishedAt?.toISOString()}>
+									{publishDate}
+								</time>
 							</div>
 						)
 					}
@@ -210,7 +208,7 @@ const publishDate =
 						{
 							publishDate && (
 								<>
-									<time>{publishDate}</time>
+									<time datetime={publishedAt?.toISOString()}>{publishDate}</time>
 									<span class="meta-dot" />
 								</>
 							)

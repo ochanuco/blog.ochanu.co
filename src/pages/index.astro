@@ -5,6 +5,7 @@ import Base from "../layouts/Base.astro";
 import PostCard from "../components/PostCard.astro";
 import {
 	comparePublishedDateDesc,
+	formatPublishedDate,
 	getPublishedDate,
 } from "../utils/post-date";
 import { getReadingTime } from "../utils/reading-time";
@@ -22,6 +23,7 @@ const sortedPosts = posts.toSorted(comparePublishedDateDesc);
 // Find the first post with a featured image for the hero
 const featuredPost = sortedPosts.find((p) => p.data.featured_image);
 const featuredIndex = featuredPost ? sortedPosts.indexOf(featuredPost) : -1;
+const featuredPublishedAt = getPublishedDate(featuredPost);
 
 // Get remaining posts (exclude featured if found, limit to 6 for grid)
 const gridPosts = sortedPosts.filter((_, i) => i !== featuredIndex).slice(0, 6);
@@ -51,15 +53,7 @@ const gridPostsWithTags = await Promise.all(
 	})
 );
 
-// Format date helper
-function formatDate(date: Date | null | undefined) {
-	if (!date) return null;
-	return date.toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
-}
+const formatDate = formatPublishedDate;
 ---
 
 <Base title={siteTitle} description={siteTagline}>
@@ -114,8 +108,10 @@ function formatDate(date: Date | null | undefined) {
 											<span class="meta-dot" />
 										</>
 									)}
-									{formatDate(getPublishedDate(featuredPost)) && (
-										<time>{formatDate(getPublishedDate(featuredPost))}</time>
+									{featuredPublishedAt && (
+										<time datetime={featuredPublishedAt.toISOString()}>
+											{formatDate(featuredPublishedAt)}
+										</time>
 									)}
 									<span class="meta-dot" />
 									<span>
