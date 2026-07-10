@@ -669,12 +669,12 @@ const isLoggedIn = !!Astro.locals.user;
 				font-size: var(--font-size-xs);
 				color: var(--color-muted);
 				text-decoration: none;
-				opacity: 0.6;
-				transition: opacity var(--transition-fast);
+				transition: color var(--transition-fast);
 			}
 
 			.nav-admin:hover {
-				opacity: 1;
+				color: var(--color-accent);
+				text-decoration: none;
 			}
 
 			/* Search styling */
