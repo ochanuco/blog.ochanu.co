@@ -302,6 +302,9 @@ const isLoggedIn = !!Astro.locals.user;
 				   amber for life events. Semantic, separate from the accent. */
 				--led-tech: var(--color-accent);
 				--led-life: #b9781a;
+				/* Darker ink for life-tag text — the LED amber alone is ~3:1 on
+				   the translucent chip background in light mode. */
+				--led-life-ink: #83510d;
 				--led-life-dim: color-mix(in srgb, var(--led-life) 14%, transparent);
 				--accent-dim: color-mix(in srgb, var(--color-accent) 12%, transparent);
 
@@ -421,6 +424,7 @@ const isLoggedIn = !!Astro.locals.user;
 					--color-accent: #4fd6c4;
 					--color-accent-hover: #7ee6d8;
 					--led-life: #e0a24a;
+					--led-life-ink: var(--led-life);
 
 					--color-panel: #161d26;
 					--color-panel-2: #1b232e;
@@ -446,6 +450,7 @@ const isLoggedIn = !!Astro.locals.user;
 				--color-accent: #4fd6c4;
 				--color-accent-hover: #7ee6d8;
 				--led-life: #e0a24a;
+				--led-life-ink: var(--led-life);
 
 				--color-panel: #161d26;
 				--color-panel-2: #1b232e;
@@ -579,7 +584,7 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			.tag.life {
-				color: var(--led-life);
+				color: var(--led-life-ink);
 				border-color: color-mix(
 					in srgb,
 					var(--led-life) 40%,
@@ -861,6 +866,14 @@ const isLoggedIn = !!Astro.locals.user;
 			// input in the statusbar anymore).
 			document.addEventListener("keydown", (e) => {
 				if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+					const target = e.target;
+					if (
+						target instanceof HTMLElement &&
+						(target.matches("input, textarea, select") ||
+							target.isContentEditable)
+					) {
+						return;
+					}
 					e.preventDefault();
 					window.location.assign("/search");
 				}

@@ -27,10 +27,15 @@ const siteTagline = settings.tagline || FALLBACK_SITE_TAGLINE;
 const sortedPosts = posts.toSorted(comparePublishedDateDesc);
 const latestPost = sortedPosts[0];
 const feedPosts = sortedPosts.slice(1, 11);
-const oldestPost = sortedPosts[sortedPosts.length - 1];
 
 const latestDate = getPublishedDate(latestPost);
-const oldestDate = getPublishedDate(oldestPost);
+// Undated posts sort to the end, so scan from the back for the oldest
+// post that actually has a published date.
+const oldestDate =
+	sortedPosts
+		.toReversed()
+		.map(getPublishedDate)
+		.find((date) => date !== null) ?? null;
 
 // Category terms per post, fetched in parallel. `post.data.id` is the DB
 // ULID (required by getEntryTerms) — `post.id` is just the slug.
