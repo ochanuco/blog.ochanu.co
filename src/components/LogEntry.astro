@@ -1,0 +1,43 @@
+---
+import { formatPublishedDate } from "../utils/post-date";
+import type { PostKind } from "../utils/post-kind";
+
+interface Props {
+	title: string;
+	href: string;
+	date: Date | null;
+	terms: Array<{ slug: string; label: string }>;
+	kind: PostKind;
+}
+
+const { title, href, date, terms, kind } = Astro.props;
+
+const formattedDate = formatPublishedDate(date);
+---
+
+<li class="entry">
+	<span class="when">
+		<span class={`dot ${kind}`} aria-hidden="true"></span>
+		{
+			date && formattedDate ? (
+				<time datetime={date.toISOString()}>{formattedDate}</time>
+			) : (
+				<span>—</span>
+			)
+		}
+	</span>
+	<div class="body">
+		<h3><a href={href}>{title}</a></h3>
+		{
+			terms.length > 0 && (
+				<div class="tags">
+					{terms.map((term) => (
+						<a href={`/category/${term.slug}`} class={`tag ${kind}`}>
+							{term.label}
+						</a>
+					))}
+				</div>
+			)
+		}
+	</div>
+</li>
