@@ -1,5 +1,5 @@
 ---
-import { getMenu, getEmDashCollection, getSiteSettings } from "emdash";
+import { getMenu, getSiteSettings } from "emdash";
 import {
 	WidgetArea,
 	EmDashHead,
@@ -8,7 +8,7 @@ import {
 } from "emdash/ui";
 import { createPublicPageContext } from "emdash/page";
 import "../styles/theme.css";
-import { FALLBACK_SITE_TITLE, FALLBACK_SITE_TAGLINE } from "../constants/site";
+import { FALLBACK_SITE_TITLE } from "../constants/site";
 
 interface Props {
 	title: string;
@@ -38,7 +38,6 @@ const {
 } = Astro.props;
 const settings = await getSiteSettings();
 const siteTitle = settings.title || FALLBACK_SITE_TITLE;
-const siteTagline = settings.tagline || FALLBACK_SITE_TAGLINE;
 const faviconUrl =
 	settings.favicon &&
 	typeof settings.favicon === "object" &&
@@ -51,9 +50,6 @@ const fullTitle = title.includes(siteTitle) ? title : `${title} — ${siteTitle}
 
 // Fetch primary menu defined in seed
 const menu = await getMenu("primary");
-
-// Fetch pages for footer
-const { entries: pages } = await getEmDashCollection("pages");
 
 // Build public page context for plugin contributions
 // SEO data is passed here and rendered securely by EmDashHead
@@ -105,182 +101,68 @@ const isLoggedIn = !!Astro.locals.user;
 	</head>
 	<body>
 		<EmDashBodyStart page={pageCtx} />
-		<header class="site-header">
-			<nav class="nav">
-				<a href="/" class="site-title">{siteTitle}</a>
-				<div class="nav-right">
-					<form class="site-search" action="/search" method="get" role="search">
-						<input
-							type="search"
-							name="q"
-							placeholder="Search..."
-							class="site-search-input"
-							aria-label="Search posts"
-						/>
-					</form>
-					<div class="nav-links">
-						{
-							menu?.items.map((item) => (
-								<a href={item.url} target={item.target}>
-									{item.label}
-								</a>
-							))
-						}
-					</div>
-					{
-						isLoggedIn && (
-							<a href="/_emdash/admin" class="nav-admin">
-								Admin
-							</a>
-						)
-					}
-				</div>
+		<header class="statusbar">
+			<a href="/" class="host">
+				<span class="led" aria-hidden="true"></span>
+				<span class="prompt">~/</span><span class="name">{siteTitle}</span>
+			</a>
+			<nav class="status-nav">
+				{
+					menu?.items.map((item) => (
+						<a href={item.url} target={item.target}>
+							{item.label}
+						</a>
+					))
+				}
+				<a href="/search">/search</a>
+				{
+					isLoggedIn && (
+						<a href="/_emdash/admin" class="status-admin">
+							admin
+						</a>
+					)
+				}
 			</nav>
+			<span class="spacer"></span>
+			<span class="clock" id="status-clock"></span>
+			<button
+				type="button"
+				class="theme-toggle"
+				id="status-theme-toggle"
+				aria-label="テーマ切り替え"
+			>
+				◐ auto
+			</button>
 		</header>
 
 		<main>
 			<slot />
 		</main>
 
-		<footer class="site-footer">
-			<div class="footer-inner">
-				<div class="footer-grid">
-					<div class="footer-brand">
-						<a href="/" class="footer-logo">{siteTitle}</a>
-						<p class="footer-tagline">{siteTagline}</p>
-					</div>
-					<div class="footer-nav">
-						<h4 class="footer-heading">Navigate</h4>
-						<ul class="footer-links">
-							<li><a href="/">Home</a></li>
-							<li><a href="/posts">All Posts</a></li>
-							{
-								pages.slice(0, 3).map((page) => (
-									<li>
-										<a href={`/pages/${page.data.slug || page.id}`}>
-											{page.data.title}
-										</a>
-									</li>
-								))
-							}
-						</ul>
-					</div>
-					<div class="footer-nav">
-						<h4 class="footer-heading">Connect</h4>
-						<ul class="footer-links">
-							{
-								menu?.items.map((item) => (
-									<li>
-										<a
-											href={item.url}
-											target={item.target}
-											rel={
-												item.target === "_blank"
-													? "noopener noreferrer"
-													: undefined
-											}
-										>
-											{item.label}
-										</a>
-									</li>
-								))
-							}
-							<li><a href="/rss.xml">RSS Feed</a></li>
-						</ul>
-					</div>
-					<div class="footer-widgets-section">
-						<WidgetArea name="footer" />
-					</div>
-				</div>
-				<div class="footer-bottom">
-					<p class="footer-copyright">
-						Powered by <a href="https://emdashcms.com">EmDash</a>
-					</p>
-					<div class="theme-switcher">
-						<button
-							type="button"
-							class="theme-btn"
-							data-theme="light"
-							aria-label="Light mode"
-						>
-							<svg
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><circle cx="12" cy="12" r="5"></circle><line
-									x1="12"
-									y1="1"
-									x2="12"
-									y2="3"></line><line x1="12" y1="21" x2="12" y2="23"
-								></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"
-								></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"
-								></line><line x1="1" y1="12" x2="3" y2="12"></line><line
-									x1="21"
-									y1="12"
-									x2="23"
-									y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"
-								></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"
-								></line></svg
-							>
-						</button>
-						<button
-							type="button"
-							class="theme-btn"
-							data-theme="dark"
-							aria-label="Dark mode"
-						>
-							<svg
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-								></path></svg
-							>
-						</button>
-						<button
-							type="button"
-							class="theme-btn"
-							data-theme="system"
-							aria-label="System theme"
-						>
-							<svg
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><rect x="2" y="3" width="20" height="14" rx="2" ry="2"
-								></rect><line x1="8" y1="21" x2="16" y2="21"></line><line
-									x1="12"
-									y1="17"
-									x2="12"
-									y2="21"></line></svg
-							>
-						</button>
-					</div>
-				</div>
-			</div>
+		<footer class="foot">
+			<WidgetArea name="footer" />
+			<div class="bar"></div>
+			ochanu.co — built on EmDash / Astro / Cloudflare Workers · © {
+				new Date().getFullYear()
+			} ochanuco · <a href="/rss.xml">rss</a>
 		</footer>
 
 		<script>
-			// Theme switcher
+			// Theme toggle — cycles auto -> light -> dark -> auto, cookie-backed
+			// (same cookie/class mechanism as before, just a single button now).
 			const THEME_REGEX = /theme=([^;]+)/;
-			const themeBtns =
-				document.querySelectorAll<HTMLButtonElement>(".theme-btn");
 			const root = document.documentElement;
+			const toggleBtn = document.getElementById(
+				"status-theme-toggle"
+			) as HTMLButtonElement | null;
+
+			const THEME_ORDER = ["system", "light", "dark"] as const;
+			type Theme = (typeof THEME_ORDER)[number];
+			const THEME_LABEL: Record<Theme, string> = {
+				system: "◐ auto",
+				light: "◐ light",
+				dark: "◐ dark",
+			};
 
 			function setCookie(
 				name: string,
@@ -295,7 +177,13 @@ const isLoggedIn = !!Astro.locals.user;
 				}
 			}
 
-			function setTheme(theme: string) {
+			function getStoredTheme(): Theme {
+				const match = document.cookie.match(THEME_REGEX);
+				const value = match ? match[1] : "";
+				return value === "light" || value === "dark" ? value : "system";
+			}
+
+			function applyTheme(theme: Theme) {
 				if (theme === "system") {
 					setCookie("theme", "");
 					root.classList.remove("light", "dark");
@@ -307,28 +195,17 @@ const isLoggedIn = !!Astro.locals.user;
 					root.classList.remove("light", "dark");
 					root.classList.add(theme);
 				}
-				updateActiveBtn(theme);
+				if (toggleBtn) toggleBtn.textContent = THEME_LABEL[theme];
 			}
 
-			function updateActiveBtn(theme: string) {
-				themeBtns.forEach((btn) => {
-					btn.classList.toggle("active", btn.dataset.theme === theme);
-				});
-			}
+			// Initialize label to match the theme the anti-flash script already applied
+			applyTheme(getStoredTheme());
 
-			function getStoredTheme(): string {
-				const match = document.cookie.match(THEME_REGEX);
-				return match ? match[1] : "system";
-			}
-
-			// Initialize
-			const storedTheme = getStoredTheme();
-			setTheme(storedTheme);
-
-			themeBtns.forEach((btn) => {
-				btn.addEventListener("click", () => {
-					setTheme(btn.dataset.theme || "system");
-				});
+			toggleBtn?.addEventListener("click", () => {
+				const current = getStoredTheme();
+				const next =
+					THEME_ORDER[(THEME_ORDER.indexOf(current) + 1) % THEME_ORDER.length];
+				applyTheme(next);
 			});
 
 			// Listen for system preference changes
@@ -339,6 +216,36 @@ const isLoggedIn = !!Astro.locals.user;
 						root.classList.toggle("dark", e.matches);
 					}
 				});
+		</script>
+
+		<script>
+			// JST clock — rendered client-side only, never baked into SSR/static
+			// output, since this site is crawled and frozen for static delivery.
+			const clockEl = document.getElementById("status-clock");
+
+			const CLOCK_PARTS: Intl.DateTimeFormatOptions = {
+				timeZone: "Asia/Tokyo",
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: false,
+			};
+
+			function renderClock() {
+				if (!clockEl) return;
+				const parts = new Intl.DateTimeFormat("en-US", CLOCK_PARTS).formatToParts(
+					new Date()
+				);
+				const get = (type: Intl.DateTimeFormatPartTypes) =>
+					parts.find((p) => p.type === type)?.value ?? "";
+				const formatted = `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
+				clockEl.innerHTML = `<b>JST</b> ${formatted}`;
+			}
+
+			renderClock();
+			setInterval(renderClock, 30000);
 		</script>
 
 		<style is:global>
@@ -371,23 +278,49 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			:root {
-				/* Colors - Light mode (default) */
-				--color-bg: #ffffff;
-				--color-bg-subtle: #fafafa;
-				--color-text: #1a1a1a;
-				--color-text-secondary: #525252;
-				--color-muted: #8b8b8b;
-				--color-border: #e5e5e5;
-				--color-border-subtle: #f0f0f0;
-				--color-surface: #f7f7f7;
-				--color-accent: #0066cc;
-				--color-accent-hover: #0052a3;
-				--color-on-accent: white;
+				/* Colors - Light mode (default)
+				   "phosphor + water" — cool ink ground, teal accent that reads
+				   as both terminal glow and aquarium water. */
+				--color-bg: #eef1f4;
+				--color-bg-subtle: #e9edf1;
+				--color-text: #18202a;
+				--color-text-secondary: #3d4856;
+				--color-muted: #63707f;
+				--color-border: #dbe2e9;
+				--color-border-subtle: #e8ecf1;
+				--color-surface: #ffffff;
+				--color-accent: #0f8a7d;
+				--color-accent-hover: #0b6f64;
+				--color-on-accent: #ffffff;
 				--color-accent-ring: color-mix(
 					in srgb,
 					var(--color-accent) 25%,
 					transparent
 				);
+
+				/* Category LEDs — teal for tinkering (infra/aquarium),
+				   amber for life events. Semantic, separate from the accent. */
+				--led-tech: var(--color-accent);
+				--led-life: #b9781a;
+				/* Darker ink for life-tag text — the LED amber alone is ~3:1 on
+				   the translucent chip background in light mode. */
+				--led-life-ink: #83510d;
+				--led-life-dim: color-mix(in srgb, var(--led-life) 14%, transparent);
+				--accent-dim: color-mix(in srgb, var(--color-accent) 12%, transparent);
+
+				/* "Uptime log" redesign tokens — panels, hairlines, and the
+				   secondary ink tone used by the statusbar/feed/rail system.
+				   Kept distinct from --color-surface/--color-border/
+				   --color-text-secondary so the legacy card components above
+				   are unaffected. */
+				--color-panel: #ffffff;
+				--color-panel-2: #f6f8fa;
+				--color-line: #dce2e9;
+				--color-line-strong: #c6cfda;
+				--color-ink-soft: #3c4757;
+				--color-accent-ink: #0a6d63;
+				--shadow-card:
+					0 1px 2px rgba(20, 30, 45, 0.06), 0 8px 24px rgba(20, 30, 45, 0.06);
 
 				/* Typography */
 				--font-sans:
@@ -480,31 +413,53 @@ const isLoggedIn = !!Astro.locals.user;
 			/* Dark mode via system preference (when no explicit class) */
 			@media (prefers-color-scheme: dark) {
 				:root:not(.light) {
-					--color-bg: #0d0d0d;
-					--color-bg-subtle: #141414;
-					--color-text: #ededed;
-					--color-text-secondary: #a0a0a0;
-					--color-muted: #6b6b6b;
-					--color-border: #2a2a2a;
-					--color-border-subtle: #1f1f1f;
-					--color-surface: #181818;
-					--color-accent: #4d9fff;
-					--color-accent-hover: #6eb0ff;
+					--color-bg: #0e1319;
+					--color-bg-subtle: #0b0f14;
+					--color-text: #d8dfe8;
+					--color-text-secondary: #aeb9c6;
+					--color-muted: #7e8b9b;
+					--color-border: #232d39;
+					--color-border-subtle: #1b2530;
+					--color-surface: #161d26;
+					--color-accent: #4fd6c4;
+					--color-accent-hover: #7ee6d8;
+					--led-life: #e0a24a;
+					--led-life-ink: var(--led-life);
+
+					--color-panel: #161d26;
+					--color-panel-2: #1b232e;
+					--color-line: #232d39;
+					--color-line-strong: #303c4b;
+					--color-ink-soft: #aeb9c6;
+					--color-accent-ink: #7ee6d8;
+					--shadow-card:
+						0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
 				}
 			}
 
 			/* Explicit dark mode */
 			:root.dark {
-				--color-bg: #0d0d0d;
-				--color-bg-subtle: #141414;
-				--color-text: #ededed;
-				--color-text-secondary: #a0a0a0;
-				--color-muted: #6b6b6b;
-				--color-border: #2a2a2a;
-				--color-border-subtle: #1f1f1f;
-				--color-surface: #181818;
-				--color-accent: #4d9fff;
-				--color-accent-hover: #6eb0ff;
+				--color-bg: #0e1319;
+				--color-bg-subtle: #0b0f14;
+				--color-text: #d8dfe8;
+				--color-text-secondary: #aeb9c6;
+				--color-muted: #7e8b9b;
+				--color-border: #232d39;
+				--color-border-subtle: #1b2530;
+				--color-surface: #161d26;
+				--color-accent: #4fd6c4;
+				--color-accent-hover: #7ee6d8;
+				--led-life: #e0a24a;
+				--led-life-ink: var(--led-life);
+
+				--color-panel: #161d26;
+				--color-panel-2: #1b232e;
+				--color-line: #232d39;
+				--color-line-strong: #303c4b;
+				--color-ink-soft: #aeb9c6;
+				--color-accent-ink: #7ee6d8;
+				--shadow-card:
+					0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
 			}
 
 			html {
@@ -561,102 +516,298 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 		</style>
 
+		<!-- "Uptime log" design system: shared across index.astro, posts/index.astro,
+		     and LogEntry.astro, so it lives here as global CSS instead of being
+		     duplicated in every page that renders a log feed. -->
+		<style is:global>
+			.sec-label {
+				font-family: var(--font-mono);
+				font-size: 12px;
+				letter-spacing: 0.1em;
+				text-transform: uppercase;
+				color: var(--color-muted);
+				display: flex;
+				align-items: baseline;
+				gap: 10px;
+				margin: 0 0 var(--spacing-4);
+			}
+
+			.sec-label::after {
+				content: "";
+				flex: 1;
+				height: 1px;
+				background: var(--color-line);
+				transform: translateY(-3px);
+			}
+
+			.sec-label .count {
+				color: var(--color-ink-soft);
+			}
+
+			.dot {
+				width: 7px;
+				height: 7px;
+				border-radius: 50%;
+				flex: none;
+			}
+
+			.dot.tech {
+				background: var(--color-accent);
+			}
+
+			.dot.life {
+				background: var(--led-life);
+			}
+
+			.tag {
+				font-family: var(--font-mono);
+				font-size: 11.5px;
+				padding: 2px 8px;
+				border-radius: 5px;
+				border: 1px solid var(--color-line-strong);
+				color: var(--color-muted);
+				white-space: nowrap;
+				text-decoration: none;
+				transition:
+					color var(--transition-fast),
+					border-color var(--transition-fast);
+			}
+
+			.tag.tech {
+				color: var(--color-accent-ink);
+				border-color: color-mix(
+					in srgb,
+					var(--color-accent) 40%,
+					var(--color-line-strong)
+				);
+				background: var(--accent-dim);
+			}
+
+			.tag.life {
+				color: var(--led-life-ink);
+				border-color: color-mix(
+					in srgb,
+					var(--led-life) 40%,
+					var(--color-line-strong)
+				);
+				background: var(--led-life-dim);
+			}
+
+			.feed {
+				list-style: none;
+				margin: 0;
+				padding: 0;
+			}
+
+			.entry {
+				display: grid;
+				grid-template-columns: 152px 1fr;
+				gap: 4px 20px;
+				padding: 16px 12px;
+				border-radius: 9px;
+				border: 1px solid transparent;
+				transition:
+					background var(--transition-fast),
+					border-color var(--transition-fast);
+			}
+
+			.entry:hover {
+				background: var(--color-panel);
+				border-color: var(--color-line);
+			}
+
+			.entry + .entry {
+				border-top: 1px solid var(--color-line);
+				border-radius: 9px;
+			}
+
+			.entry:hover + .entry,
+			.entry:hover {
+				border-top-color: transparent;
+			}
+
+			.entry .when {
+				font-family: var(--font-mono);
+				font-size: 12.5px;
+				color: var(--color-muted);
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				padding-top: 3px;
+				font-variant-numeric: tabular-nums;
+				white-space: nowrap;
+			}
+
+			.entry .body {
+				min-width: 0;
+			}
+
+			.entry h3 {
+				margin: 0 0 6px;
+				font-size: 16.5px;
+				font-weight: 650;
+				line-height: 1.4;
+			}
+
+			.entry h3 a {
+				color: var(--color-text);
+				text-decoration: none;
+			}
+
+			.entry:hover h3 a {
+				color: var(--color-accent-ink);
+			}
+
+			.entry .tags {
+				display: flex;
+				gap: 7px;
+				flex-wrap: wrap;
+			}
+
+			@media (max-width: 560px) {
+				.entry {
+					grid-template-columns: 1fr;
+					gap: 8px;
+				}
+
+				.entry .when {
+					padding-top: 0;
+				}
+			}
+		</style>
+
 		<style>
-			.site-header {
+			.statusbar {
 				position: sticky;
 				top: 0;
 				z-index: 100;
-				background: color-mix(in srgb, var(--color-bg) 65%, transparent);
-				backdrop-filter: blur(12px);
-				-webkit-backdrop-filter: blur(12px);
-				border-bottom: 1px solid var(--color-border-subtle);
-			}
-
-			.nav {
 				display: flex;
-				justify-content: space-between;
 				align-items: center;
-				max-width: var(--wide-width);
-				margin: 0 auto;
-				padding: var(--spacing-4) var(--spacing-6);
-				height: var(--nav-height);
+				gap: 16px;
+				min-height: var(--nav-height);
+				padding: 12px clamp(16px, 4vw, 40px);
+				background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+				backdrop-filter: blur(10px);
+				-webkit-backdrop-filter: blur(10px);
+				border-bottom: 1px solid var(--color-line);
+				font-family: var(--font-mono);
+				font-size: 13px;
 			}
 
-			.site-title {
-				font-size: var(--font-size-lg);
+			.host {
+				display: inline-flex;
+				align-items: center;
+				gap: 9px;
 				font-weight: 600;
+				letter-spacing: 0.01em;
 				color: var(--color-text);
 				text-decoration: none;
-				letter-spacing: var(--tracking-snug);
+				flex: none;
 			}
 
-			.site-title:hover {
-				color: var(--color-accent);
+			.host .prompt {
+				color: var(--color-muted);
 			}
 
-			.nav-right {
+			.host .name {
+				color: var(--color-accent-ink);
+			}
+
+			/* Status LED — signals "online", ties the homelab concept together */
+			.led {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--color-accent);
+				flex: none;
+				animation: led-pulse 2.6s ease-out infinite;
+			}
+
+			@keyframes led-pulse {
+				0% {
+					box-shadow: 0 0 0 0
+						color-mix(in srgb, var(--color-accent) 55%, transparent);
+				}
+				70% {
+					box-shadow: 0 0 0 6px transparent;
+				}
+				100% {
+					box-shadow: 0 0 0 0 transparent;
+				}
+			}
+
+			@media (prefers-reduced-motion: reduce) {
+				.led {
+					animation: none;
+				}
+			}
+
+			.status-nav {
 				display: flex;
 				align-items: center;
-				gap: var(--spacing-6);
-			}
-
-			.nav-links {
-				display: flex;
 				gap: var(--spacing-5);
-				font-size: var(--font-size-sm);
+				flex-wrap: wrap;
+				min-width: 0;
 			}
 
-			.nav-links a {
+			.status-nav a {
 				text-decoration: none;
-				color: var(--color-text);
+				color: var(--color-text-secondary);
+				text-transform: lowercase;
 				transition: color var(--transition-fast);
 			}
 
-			.nav-links a:hover {
+			.status-nav a:hover {
 				color: var(--color-accent);
 			}
 
-			.nav-admin {
-				font-size: var(--font-size-sm);
+			.status-admin {
 				color: var(--color-muted);
-				text-decoration: none;
-				opacity: 0.5;
-				transition: opacity var(--transition-fast);
 			}
 
-			.nav-admin:hover {
-				opacity: 1;
+			.statusbar .spacer {
+				flex: 1;
 			}
 
-			/* Search styling */
-			.site-search {
-				position: relative;
-				width: var(--search-input-width);
+			.clock {
+				color: var(--color-muted);
+				font-variant-numeric: tabular-nums;
+				white-space: nowrap;
 			}
 
-			:global(.site-search-input) {
-				width: var(--search-input-width);
-				padding: var(--spacing-2) var(--spacing-3);
-				font-family: var(--font-sans);
-				font-size: var(--font-size-sm);
-				border: 1px solid var(--color-border);
-				border-radius: var(--radius);
-				background: var(--color-bg);
-				color: var(--color-text);
+			.clock :global(b) {
+				color: var(--color-ink-soft);
+				font-weight: 600;
+			}
+
+			@media (max-width: 640px) {
+				.clock {
+					display: none;
+				}
+			}
+
+			.theme-toggle {
+				font-family: var(--font-mono);
+				font-size: 12px;
+				color: var(--color-muted);
+				background: transparent;
+				border: 1px solid var(--color-line-strong);
+				border-radius: 6px;
+				padding: 5px 10px;
+				cursor: pointer;
 				transition:
 					border-color var(--transition-fast),
-					box-shadow var(--transition-fast);
+					color var(--transition-fast);
 			}
 
-			:global(.site-search-input)::placeholder {
-				color: var(--color-muted);
+			.theme-toggle:hover {
+				color: var(--color-text);
+				border-color: var(--color-accent);
 			}
 
-			:global(.site-search-input):focus,
-			:global(.site-search-input):focus-visible {
-				outline: none;
-				border-color: var(--color-accent) !important;
-				box-shadow: 0 0 0 3px var(--color-accent-ring);
+			.theme-toggle:focus-visible {
+				outline: 2px solid var(--color-accent);
+				outline-offset: 2px;
 			}
 
 			main {
@@ -664,250 +815,67 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			/* Footer */
-			.site-footer {
-				background: var(--color-bg-subtle);
-				border-top: 1px solid var(--color-border-subtle);
-			}
-
-			.footer-inner {
+			.foot {
 				max-width: var(--wide-width);
 				margin: 0 auto;
-				padding: var(--spacing-16) var(--spacing-6) var(--spacing-8);
-			}
-
-			.footer-grid {
-				display: grid;
-				grid-template-columns: 2fr 1fr 1fr 1fr;
-				gap: var(--spacing-12);
-				margin-bottom: var(--spacing-12);
-			}
-
-			.footer-brand {
-				max-width: 280px;
-			}
-
-			.footer-logo {
-				font-size: var(--font-size-lg);
-				font-weight: 600;
-				color: var(--color-text);
-				text-decoration: none;
-				letter-spacing: var(--tracking-snug);
-			}
-
-			.footer-tagline {
-				margin-top: var(--spacing-3);
-				font-size: var(--font-size-sm);
+				padding: var(--spacing-12) clamp(16px, 4vw, 40px) var(--spacing-12);
+				font-family: var(--font-mono);
+				font-size: 12px;
 				color: var(--color-muted);
-				line-height: var(--leading-relaxed);
 			}
 
-			.footer-nav {
-				min-width: 0;
+			.foot .bar {
+				height: 1px;
+				background: var(--color-line);
+				margin-bottom: 18px;
 			}
 
-			.footer-heading {
-				font-size: var(--font-size-xs);
-				font-weight: 500;
-				text-transform: uppercase;
-				letter-spacing: var(--tracking-wider);
+			.foot a {
 				color: var(--color-muted);
-				margin-bottom: var(--spacing-4);
+				text-decoration: underline;
+				text-underline-offset: 2px;
 			}
 
-			.footer-links {
-				list-style: none;
-			}
-
-			.footer-links li {
-				margin-bottom: var(--spacing-2);
-			}
-
-			.footer-links a {
-				color: var(--color-text-secondary);
-				text-decoration: none;
-				font-size: var(--font-size-sm);
-				transition: color var(--transition-fast);
-			}
-
-			.footer-links a:hover {
+			.foot a:hover {
 				color: var(--color-text);
 			}
 
-			.footer-widgets-section :global(.widget-area) {
-				display: block;
-			}
-
-			.footer-widgets-section :global(.widget) {
-				color: var(--color-text-secondary);
-			}
-
-			.footer-widgets-section :global(.widget__title) {
-				font-size: var(--font-size-xs);
-				font-weight: 500;
-				text-transform: uppercase;
-				letter-spacing: var(--tracking-wider);
-				color: var(--color-muted);
-				margin-bottom: var(--spacing-4);
-			}
-
-			.footer-widgets-section :global(.widget__content) {
-				color: var(--color-text-secondary);
-				font-size: var(--font-size-sm);
-				line-height: var(--leading-relaxed);
-			}
-
-			.footer-bottom {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				padding-top: var(--spacing-6);
-				border-top: 1px solid var(--color-border);
-			}
-
-			.footer-copyright {
-				font-size: var(--font-size-sm);
-				color: var(--color-muted);
-			}
-
-			.footer-copyright a {
-				color: var(--color-text-secondary);
-			}
-
-			/* Theme switcher */
-			.theme-switcher {
-				display: flex;
-				gap: var(--spacing-1);
-				padding: var(--spacing-1);
-				background: var(--color-surface);
-				border-radius: var(--radius);
-			}
-
-			.theme-btn {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				width: 32px;
-				height: 28px;
-				background: transparent;
-				border: none;
-				color: var(--color-muted);
-				border-radius: var(--radius);
-				cursor: pointer;
-				transition: all var(--transition-fast);
-			}
-
-			.theme-btn:hover {
-				color: var(--color-text-secondary);
-			}
-
-			.theme-btn.active {
-				background: var(--color-bg);
-				color: var(--color-text);
-				box-shadow: var(--shadow-btn-active);
-			}
-
-			.theme-btn svg {
-				width: 16px;
-				height: 16px;
-			}
-
-			@media (max-width: 900px) {
-				.footer-grid {
-					grid-template-columns: 1fr 1fr;
-					gap: var(--spacing-8);
-				}
-
-				.footer-brand {
-					grid-column: span 2;
-					max-width: none;
-				}
+			.foot :global(.widget-area) {
+				margin-bottom: var(--spacing-6);
 			}
 
 			@media (max-width: 640px) {
-				.site-header {
-					position: relative;
-					border-bottom: none;
-				}
-
-				.nav {
-					flex-direction: row;
+				.statusbar {
 					flex-wrap: wrap;
-					justify-content: space-between;
-					align-items: center;
-					height: auto;
-					gap: var(--spacing-2);
-					padding: var(--spacing-3) var(--spacing-4);
+					row-gap: 8px;
 				}
 
-				.site-title {
-					font-size: var(--font-size-base);
-				}
-
-				.nav-right {
-					display: contents;
-				}
-
-				.site-search {
-					order: 0;
-					max-width: 140px;
-				}
-
-				:global(.site-search-input) {
-					width: 140px !important;
-					padding: var(--spacing-1) var(--spacing-2) !important;
-					font-size: var(--font-size-sm) !important;
-				}
-
-				.nav-links {
-					order: 1;
+				.status-nav {
+					order: 3;
 					width: 100%;
-					display: flex;
-					column-gap: var(--spacing-3);
-					row-gap: var(--spacing-1);
-					flex-wrap: wrap;
-					justify-content: flex-start;
 				}
 
-				.nav-admin {
-					order: 2;
-					position: absolute;
-					right: var(--spacing-4);
-					top: var(--spacing-3);
-					font-size: var(--font-size-xs);
-				}
-
-				.footer-grid {
-					grid-template-columns: 1fr;
-				}
-
-				.footer-brand {
-					grid-column: span 1;
-				}
-
-				.footer-bottom {
-					flex-direction: column;
-					gap: var(--spacing-4);
-					text-align: center;
-				}
-
-				.footer-controls {
-					flex-wrap: wrap;
-					justify-content: center;
+				.spacer {
+					display: none;
 				}
 			}
 		</style>
 
 		<script>
-			// ⌘K / Ctrl+K to focus search
+			// ⌘K / Ctrl+K navigates to the search page (there's no inline search
+			// input in the statusbar anymore).
 			document.addEventListener("keydown", (e) => {
 				if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-					e.preventDefault();
-					const searchInput = document.querySelector(
-						".site-search-input"
-					) as HTMLInputElement;
-					if (searchInput) {
-						searchInput.focus();
+					const target = e.target;
+					if (
+						target instanceof HTMLElement &&
+						(target.matches("input, textarea, select") ||
+							target.isContentEditable)
+					) {
+						return;
 					}
+					e.preventDefault();
+					window.location.assign("/search");
 				}
 			});
 		</script>
