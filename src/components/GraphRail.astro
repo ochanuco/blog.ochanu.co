@@ -9,7 +9,15 @@ import { getPostsSummary } from "../utils/posts-summary";
 
 // Base 経由で全ページに置くため、データは短命キャッシュ付きの
 // 共有ストアから取る(毎リクエストの全件クエリを避ける)。
-const { posts, cats } = await getPostsSummary();
+// 補助 UI なので、取得に失敗してもページ全体は巻き込まず
+// グラフだけ非表示にする。
+let posts: Awaited<ReturnType<typeof getPostsSummary>>["posts"] = [];
+let cats: Awaited<ReturnType<typeof getPostsSummary>>["cats"] = [];
+try {
+	({ posts, cats } = await getPostsSummary());
+} catch (error) {
+	console.error("GraphRail: failed to load posts summary", error);
+}
 
 const catLabelBySlug = new Map(cats.map((c) => [c.slug, c.label]));
 
@@ -80,8 +88,24 @@ const graphData = { nodes, edges };
 {
 	nodes.length > 0 && (
 		<aside class="rail">
-			<canvas id="graph-rail" role="img" aria-label="記事のつながりグラフ" />
+			{/* Canvas は装飾+ポインター操作用。キーボード/支援技術には
+			    下の視覚的に隠したリンク一覧が等価な導線になる */}
+			<canvas id="graph-rail" aria-hidden="true" />
 			<div class="graph-tooltip" id="graph-tooltip" hidden />
+			<nav class="visually-hidden" aria-label="記事のつながり(リンク一覧)">
+				<ul>
+					{nodes
+						.filter((n) => n.type === "hub" && n.href)
+						.map((n) => (
+							<li>
+								<a href={n.href}>{n.label}</a>
+							</li>
+						))}
+					<li>
+						<a href="/posts">全記事一覧</a>
+					</li>
+				</ul>
+			</nav>
 		</aside>
 	)
 }
@@ -374,17 +398,14 @@ const graphData = { nodes, edges };
 		if (reduced) {
 			// 非表示(clientWidth === 0)で初期化された場合は、表示された
 			// タイミング(リサイズ)で改めて収束させる。
-			let settled = false;
 			const settle = () => {
 				if (canvas.clientWidth === 0) return;
 				for (let i = 0; i < 400; i++) step();
 				draw();
-				settled = true;
 			};
 			settle();
-			window.addEventListener("resize", () => {
-				if (!settled) settle();
-			});
+			// サイズが変われば境界も変わるので、リサイズごとに再収束させる
+			window.addEventListener("resize", settle);
 		} else {
 			// 収束したら止まり、操作(ドラッグ・リサイズ)で再開するループ。
 			// media query 非表示(clientWidth === 0)の間も回さない。
@@ -442,6 +463,15 @@ const graphData = { nodes, edges };
 		border-radius: 9px 13px 8px 14px / 14px 8px 13px 9px;
 		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 		touch-action: none;
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 
 	.graph-tooltip {
