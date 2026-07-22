@@ -17,7 +17,7 @@ The whole site (`blog.ochanu.co`) — public pages and the admin UI — is serve
 pnpm build && pnpm deploy   # Build and deploy the worker
 ```
 
-Search is EmDash's `LiveSearch` (`emdash/ui/search`) on `/search`, backed by the worker's search API at request time.
+Search on `/search` is server-rendered substring matching over the posts collection (title/excerpt/body). It deliberately avoids EmDash's built-in FTS5 search (`emdash/ui/search` LiveSearch) because the unicode61 tokenizer drops Japanese queries.
 
 Passkeys: `astro.config.mjs` pins the WebAuthn RP ID to `blog.ochanu.co` via `siteUrl`, so passkeys registered during the former `admin.blog.ochanu.co` era keep working.
 
