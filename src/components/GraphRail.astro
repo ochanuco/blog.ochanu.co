@@ -104,7 +104,6 @@ const graphData = { nodes, edges };
 		<aside class="rail">
 			<canvas id="graph-rail" role="img" aria-label="記事のつながりグラフ" />
 			<div class="graph-tooltip" id="graph-tooltip" hidden />
-			<p class="cap">記事のつながり(ドラッグ可・クリックで記事へ)</p>
 		</aside>
 	)
 }
@@ -424,13 +423,6 @@ const graphData = { nodes, edges };
 		border-radius: 9px 13px 8px 14px / 14px 8px 13px 9px;
 		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 		touch-action: none;
-	}
-
-	.rail .cap {
-		font-size: 11.5px;
-		color: var(--color-muted);
-		text-align: center;
-		margin: 8px 0 0;
 	}
 
 	.graph-tooltip {
