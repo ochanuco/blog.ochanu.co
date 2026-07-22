@@ -369,8 +369,19 @@ const graphData = { nodes, edges };
 			"(prefers-reduced-motion: reduce)"
 		).matches;
 		if (reduced) {
-			for (let i = 0; i < 400; i++) step();
-			draw();
+			// 非表示(clientWidth === 0)で初期化された場合は、表示された
+			// タイミング(リサイズ)で改めて収束させる。
+			let settled = false;
+			const settle = () => {
+				if (canvas.clientWidth === 0) return;
+				for (let i = 0; i < 400; i++) step();
+				draw();
+				settled = true;
+			};
+			settle();
+			window.addEventListener("resize", () => {
+				if (!settled) settle();
+			});
 		} else {
 			// 収束したら止まり、操作(ドラッグ・リサイズ)で再開するループ。
 			// media query 非表示(clientWidth === 0)の間も回さない。
