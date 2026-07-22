@@ -22,7 +22,7 @@ Astro.cache.set(cacheHint);
 	title={page.data.title}
 	content={{ collection: "pages", id: page.data.id, slug }}
 >
-	<article class="page-article">
+	<article class="page-article notebook-card">
 		<header class="page-header">
 			<h1 class="page-title" {...page.edit.title}>{page.data.title}</h1>
 		</header>
@@ -35,8 +35,7 @@ Astro.cache.set(cacheHint);
 
 <style>
 	.page-article {
-		max-width: var(--max-width);
-		margin: 0 auto;
+		max-width: 944px;
 		padding: var(--spacing-16) var(--spacing-6) var(--spacing-16);
 	}
 

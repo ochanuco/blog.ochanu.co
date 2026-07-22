@@ -1,12 +1,9 @@
 ---
-import { getTerm, getEmDashCollection, getEntryTerms } from "emdash";
+import { getTerm, getEmDashCollection } from "emdash";
 import Base from "../../layouts/Base.astro";
-import PostCard from "../../components/PostCard.astro";
-import {
-	comparePublishedDateDesc,
-	getPublishedDate,
-} from "../../utils/post-date";
-import { getReadingTime } from "../../utils/reading-time";
+import NotebookList from "../../components/NotebookList.astro";
+import { comparePublishedDateDesc } from "../../utils/post-date";
+import { toNotebookEntries } from "../../utils/notebook-entries";
 
 const { slug } = Astro.params;
 const term = slug ? await getTerm("tag", slug) : null;
@@ -15,109 +12,59 @@ if (!term) {
 	return Astro.redirect("/404");
 }
 
-const { entries: posts } = await getEmDashCollection("posts", {
+const { entries: posts, cacheHint } = await getEmDashCollection("posts", {
 	where: { tag: term.slug },
 });
 
-// Fetch tags for display on each post card
-const filteredPosts = await Promise.all(
-	posts.toSorted(comparePublishedDateDesc).map(async (post) => {
-		const tags = await getEntryTerms("posts", post.data.id, "tag");
-		return { post, tags };
-	})
-);
+Astro.cache.set(cacheHint);
+
+const sortedPosts = posts.toSorted(comparePublishedDateDesc);
+
+const notebookEntries = await toNotebookEntries(sortedPosts);
 ---
 
 <Base
 	title={`Posts tagged "${term.label}"`}
 	description={`All posts tagged with ${term.label}`}
 >
-	<section class="archive-section">
-		<header class="archive-header">
-			<span class="archive-label">Tag</span>
-			<h1 class="archive-title">{term.label}</h1>
-			<p class="archive-count">
-				{filteredPosts.length}
-				{filteredPosts.length === 1 ? "post" : "posts"}
-			</p>
-		</header>
-
+	<div class="archive-page notebook-card">
+		<span class="tape">「{term.label}」の 記 録</span>
+		<p class="meta"><b>{sortedPosts.length} entries</b></p>
 		{
-			filteredPosts.length === 0 ? (
-				<p class="no-posts">No posts with this tag yet.</p>
+			sortedPosts.length === 0 ? (
+				<p class="empty">No posts with this tag yet.</p>
 			) : (
-				<div class="posts-grid">
-					{filteredPosts.map(({ post, tags }) => (
-						<PostCard
-							title={post.data.title}
-							excerpt={post.data.excerpt}
-							featuredImage={post.data.featured_image}
-							href={`/posts/${post.id}`}
-							date={getPublishedDate(post) ?? undefined}
-							readingTime={getReadingTime(post.data.content)}
-							tags={tags.map((t) => ({ slug: t.slug, label: t.label }))}
-						/>
-					))}
-				</div>
+				<NotebookList entries={notebookEntries} />
 			)
 		}
-	</section>
+	</div>
 </Base>
 
 <style>
-	.archive-section {
-		max-width: var(--wide-width);
-		margin: 0 auto;
-		padding: var(--spacing-12) var(--spacing-6);
+	.archive-page {
+		max-width: 944px;
+		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 56px;
 	}
 
-	.archive-header {
-		margin-bottom: var(--spacing-12);
-		padding-bottom: var(--spacing-8);
-		border-bottom: 1px solid var(--color-border-subtle);
-	}
-
-	.archive-label {
+	.archive-page .tape {
 		display: block;
-		font-size: var(--font-size-xs);
-		font-weight: 500;
-		color: var(--color-accent);
-		text-transform: uppercase;
-		letter-spacing: var(--tracking-wider);
-		margin-bottom: var(--spacing-2);
+		width: fit-content;
 	}
 
-	.archive-title {
-		font-size: var(--font-size-4xl);
-		font-weight: 700;
-		letter-spacing: var(--tracking-tight);
-		margin-bottom: var(--spacing-2);
-	}
-
-	.archive-count {
-		font-size: var(--font-size-sm);
+	.meta {
+		margin: 0 0 20px 8px;
+		font-size: 12px;
 		color: var(--color-muted);
+		font-variant-numeric: tabular-nums;
 	}
 
-	.posts-grid {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: var(--spacing-12) var(--spacing-8);
+	.meta b {
+		color: var(--color-red);
+		font-weight: 600;
 	}
 
-	.no-posts {
+	.empty {
 		color: var(--color-muted);
-	}
-
-	@media (max-width: 900px) {
-		.posts-grid {
-			grid-template-columns: repeat(2, 1fr);
-		}
-	}
-
-	@media (max-width: 600px) {
-		.posts-grid {
-			grid-template-columns: 1fr;
-		}
+		font-size: var(--font-size-lg);
 	}
 </style>

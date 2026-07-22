@@ -1,0 +1,497 @@
+---
+// Compact "wiring diagram" graph of posts <-> categories, drawn on a
+// <canvas>. SSR precomputes the node/edge list (including each hub's color,
+// via getCategoryColor) and hands it to the client as JSON; the client
+// script owns layout (force simulation), drawing, drag, hover tooltip, and
+// click-to-navigate.
+import { getCategoryColor, UNCATEGORIZED_HUB_COLOR } from "../utils/category-color";
+import { getPostsSummary } from "../utils/posts-summary";
+
+// Base 経由で全ページに置くため、データは短命キャッシュ付きの
+// 共有ストアから取る(毎リクエストの全件クエリを避ける)。
+// 補助 UI なので、取得に失敗してもページ全体は巻き込まず
+// グラフだけ非表示にする。
+let posts: Awaited<ReturnType<typeof getPostsSummary>>["posts"] = [];
+let cats: Awaited<ReturnType<typeof getPostsSummary>>["cats"] = [];
+try {
+	({ posts, cats } = await getPostsSummary());
+} catch (error) {
+	console.error("GraphRail: failed to load posts summary", error);
+}
+
+const catLabelBySlug = new Map(cats.map((c) => [c.slug, c.label]));
+
+// Hubs: one per category that actually has at least one post, plus a
+// catch-all "メモ" hub for uncategorized posts (only if any exist).
+const usedCatSlugs = Array.from(
+	new Set(posts.map((p) => p.catSlug).filter((s): s is string => !!s))
+);
+const hasUncategorized = posts.some((p) => !p.catSlug);
+
+type GraphNode = {
+	type: "hub" | "post";
+	label: string;
+	color: string;
+	href: string | null;
+};
+
+const nodes: GraphNode[] = [];
+const edges: Array<[number, number]> = [];
+
+const hubIndexBySlug = new Map<string, number>();
+for (const slug of usedCatSlugs) {
+	hubIndexBySlug.set(slug, nodes.length);
+	nodes.push({
+		type: "hub",
+		label: catLabelBySlug.get(slug) ?? slug,
+		color: getCategoryColor(slug),
+		href: `/category/${slug}`,
+	});
+}
+
+let memoHubIndex = -1;
+if (hasUncategorized) {
+	memoHubIndex = nodes.length;
+	nodes.push({
+		type: "hub",
+		label: "メモ",
+		color: UNCATEGORIZED_HUB_COLOR,
+		href: null,
+	});
+}
+
+for (const post of posts) {
+	const hubIndex = post.catSlug ? hubIndexBySlug.get(post.catSlug) : undefined;
+	const resolvedHubIndex = hubIndex ?? memoHubIndex;
+	if (resolvedHubIndex === undefined || resolvedHubIndex < 0) continue;
+	const postIndex = nodes.length;
+	nodes.push({
+		type: "post",
+		label: post.title,
+		color: nodes[resolvedHubIndex].color,
+		href: `/posts/${post.slug}`,
+	});
+	edges.push([resolvedHubIndex, postIndex]);
+}
+
+// 開いているページに対応するノードは「赤ペンで丸を付けた」印を出す
+const currentPath = Astro.url.pathname.replace(/\/+$/, "") || "/";
+for (const node of nodes) {
+	if (node.href && node.href === currentPath) {
+		(node as GraphNode & { current?: boolean }).current = true;
+	}
+}
+
+const graphData = { nodes, edges };
+---
+
+{
+	nodes.length > 0 && (
+		<aside class="rail">
+			{/* Canvas は装飾+ポインター操作用。キーボード/支援技術には
+			    下の視覚的に隠したリンク一覧が等価な導線になる */}
+			<canvas id="graph-rail" aria-hidden="true" />
+			<div class="graph-tooltip" id="graph-tooltip" hidden />
+			<nav class="visually-hidden" aria-label="記事のつながり(リンク一覧)">
+				<ul>
+					{nodes
+						.filter((n) => n.type === "hub" && n.href)
+						.map((n) => (
+							<li>
+								<a href={n.href}>{n.label}</a>
+							</li>
+						))}
+					<li>
+						<a href="/posts">全記事一覧</a>
+					</li>
+				</ul>
+			</nav>
+		</aside>
+	)
+}
+
+<script define:vars={{ graphData }}>
+	(function () {
+		const canvas = document.getElementById("graph-rail");
+		if (!canvas || !(canvas instanceof HTMLCanvasElement)) return;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+		const tooltip = document.getElementById("graph-tooltip");
+		const rail = canvas.closest(".rail");
+
+		const nodes = graphData.nodes.map((n, i) => ({
+			...n,
+			r: n.type === "hub" ? 15 : 5,
+			x: 0,
+			y: 0,
+			vx: 0,
+			vy: 0,
+			seed: i * 3.7 + (n.type === "hub" ? 0 : 40),
+		}));
+		const edges = graphData.edges;
+
+		function readVar(name, fallback) {
+			const v = getComputedStyle(document.documentElement)
+				.getPropertyValue(name)
+				.trim();
+			return v || fallback;
+		}
+
+		let colors = {
+			paper: readVar("--color-paper", "#fafbf8"),
+			grid: readVar("--color-grid", "#e3ebf1"),
+			ink: readVar("--color-ink", "#2a2c30"),
+			muted: readVar("--color-muted", "#8b95a1"),
+			red: readVar("--color-red", "#d94f43"),
+			font: readVar("--font-hand", "'Klee One', sans-serif"),
+		};
+
+		// Re-read the palette whenever the theme toggle flips the root class.
+		const themeObserver = new MutationObserver(() => {
+			colors = {
+				paper: readVar("--color-paper", "#fafbf8"),
+				grid: readVar("--color-grid", "#e3ebf1"),
+				ink: readVar("--color-ink", "#2a2c30"),
+				muted: readVar("--color-muted", "#8b95a1"),
+				red: readVar("--color-red", "#d94f43"),
+				font: readVar("--font-hand", "'Klee One', sans-serif"),
+			};
+			draw();
+		});
+		themeObserver.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["class"],
+		});
+
+		let W = 0,
+			H = 0;
+
+		function resize() {
+			const dpr = window.devicePixelRatio || 1;
+			W = canvas.clientWidth;
+			H = canvas.clientHeight;
+			canvas.width = W * dpr;
+			canvas.height = H * dpr;
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		}
+		resize();
+		window.addEventListener("resize", () => {
+			resize();
+			draw();
+		});
+
+		const hubs = nodes.filter((n) => n.type === "hub");
+		hubs.forEach((n, i) => {
+			const a = (i / Math.max(hubs.length, 1)) * Math.PI * 2 - 0.6;
+			n.x = W / 2 + Math.cos(a) * Math.min(W, H) * 0.26;
+			n.y = H / 2 + Math.sin(a) * Math.min(W, H) * 0.26;
+		});
+		nodes.forEach((n, i) => {
+			if (n.type !== "post") return;
+			const edge = edges.find((e) => e[1] === i);
+			const hub = edge ? nodes[edge[0]] : null;
+			if (!hub) return;
+			n.x = hub.x + Math.cos(n.seed) * 32;
+			n.y = hub.y + Math.sin(n.seed) * 32;
+		});
+
+		let dragNode = null;
+
+		function step() {
+			for (let i = 0; i < nodes.length; i++) {
+				const a = nodes[i];
+				for (let j = i + 1; j < nodes.length; j++) {
+					const b = nodes[j];
+					let dx = a.x - b.x,
+						dy = a.y - b.y;
+					const d2 = dx * dx + dy * dy || 1;
+					const d = Math.sqrt(d2);
+					const rep = 750 / d2;
+					dx /= d;
+					dy /= d;
+					a.vx += dx * rep;
+					a.vy += dy * rep;
+					b.vx -= dx * rep;
+					b.vy -= dy * rep;
+				}
+			}
+			edges.forEach(([i, j]) => {
+				const a = nodes[i],
+					b = nodes[j];
+				const dx = b.x - a.x,
+					dy = b.y - a.y;
+				const d = Math.sqrt(dx * dx + dy * dy) || 1;
+				const f = (d - 50) * 0.012;
+				a.vx += (dx / d) * f;
+				a.vy += (dy / d) * f;
+				b.vx -= (dx / d) * f;
+				b.vy -= (dy / d) * f;
+			});
+			nodes.forEach((n) => {
+				if (n === dragNode) return;
+				n.vx += (W / 2 - n.x) * 0.0012;
+				n.vy += (H / 2 - n.y) * 0.0012;
+				n.vx *= 0.86;
+				n.vy *= 0.86;
+				n.x += n.vx;
+				n.y += n.vy;
+				// ハブはラベルが円からはみ出すぶん、左右の余白を広めに取る
+				const mx = n.type === "hub" ? 48 : 30;
+				n.x = Math.max(mx, Math.min(W - mx, n.x));
+				n.y = Math.max(26, Math.min(H - 26, n.y));
+			});
+		}
+
+		function wobblyCircle(x, y, r, seed) {
+			ctx.beginPath();
+			for (let k = 0; k <= 20; k++) {
+				const a = (k / 20) * Math.PI * 2;
+				const w = 1 + Math.sin(a * 3 + seed) * 0.055;
+				const px = x + Math.cos(a) * r * w;
+				const py = y + Math.sin(a) * r * w;
+				k === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+			}
+			ctx.closePath();
+		}
+
+		function draw() {
+			ctx.clearRect(0, 0, W, H);
+			ctx.fillStyle = colors.paper;
+			ctx.fillRect(0, 0, W, H);
+			ctx.strokeStyle = colors.grid;
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			for (let x = 0.5; x < W; x += 20) {
+				ctx.moveTo(x, 0);
+				ctx.lineTo(x, H);
+			}
+			for (let y = 0.5; y < H; y += 20) {
+				ctx.moveTo(0, y);
+				ctx.lineTo(W, y);
+			}
+			ctx.stroke();
+
+			ctx.strokeStyle = "rgba(140, 150, 160, 0.45)";
+			ctx.lineWidth = 1.2;
+			edges.forEach(([i, j]) => {
+				const a = nodes[i],
+					b = nodes[j];
+				ctx.beginPath();
+				ctx.moveTo(a.x, a.y);
+				const mx = (a.x + b.x) / 2 + Math.sin(a.seed + b.seed) * 8;
+				const my = (a.y + b.y) / 2 + Math.cos(a.seed - b.seed) * 8;
+				ctx.quadraticCurveTo(mx, my, b.x, b.y);
+				ctx.stroke();
+			});
+
+			nodes.forEach((n) => {
+				// 開いているページのノードは赤ペンで丸を付ける
+				if (n.current) {
+					ctx.lineWidth = 1.8;
+					ctx.strokeStyle = colors.red;
+					wobblyCircle(n.x, n.y, n.r + 6, n.seed + 11);
+					ctx.stroke();
+					wobblyCircle(n.x, n.y, n.r + 7.5, n.seed + 23);
+					ctx.stroke();
+				}
+				ctx.lineWidth = n.type === "hub" ? 2 : 1.5;
+				ctx.strokeStyle = n.color;
+				ctx.fillStyle = n.type === "hub" ? colors.paper : n.color;
+				wobblyCircle(n.x, n.y, n.r, n.seed);
+				if (n.type === "hub") {
+					ctx.fill();
+					ctx.stroke();
+				} else {
+					ctx.globalAlpha = 0.85;
+					ctx.fill();
+					ctx.globalAlpha = 1;
+				}
+				if (n.type === "hub") {
+					ctx.fillStyle = n.color;
+					ctx.font = `600 11px ${colors.font}`;
+					ctx.textAlign = "center";
+					// ラベルはノード位置に関わらずキャンバス内に収める
+					const half = ctx.measureText(n.label).width / 2;
+					const tx = Math.max(half + 3, Math.min(W - half - 3, n.x));
+					ctx.fillText(n.label, tx, n.y + 4);
+				}
+			});
+		}
+
+		function pick(clientX, clientY) {
+			const rect = canvas.getBoundingClientRect();
+			const x = clientX - rect.left;
+			const y = clientY - rect.top;
+			return {
+				x,
+				y,
+				node: nodes.find((n) => (n.x - x) ** 2 + (n.y - y) ** 2 < (n.r + 10) ** 2),
+			};
+		}
+
+		let downX = 0;
+		let downY = 0;
+		let downNode = null;
+
+		canvas.addEventListener("pointerdown", (ev) => {
+			const p = pick(ev.clientX, ev.clientY);
+			downX = ev.clientX;
+			downY = ev.clientY;
+			downNode = p.node ?? null;
+			if (p.node) {
+				dragNode = p.node;
+				canvas.setPointerCapture(ev.pointerId);
+				canvas.style.cursor = "grabbing";
+			}
+		});
+
+		canvas.addEventListener("pointermove", (ev) => {
+			if (dragNode) {
+				const p = pick(ev.clientX, ev.clientY);
+				// step() と同じ境界でクランプ(reduced-motion 時は step() が
+				// 走らないため、ここで外に出すと操作不能になる)
+				const mx = dragNode.type === "hub" ? 48 : 30;
+				dragNode.x = Math.max(mx, Math.min(W - mx, p.x));
+				dragNode.y = Math.max(26, Math.min(H - 26, p.y));
+				dragNode.vx = 0;
+				dragNode.vy = 0;
+				if (reduced) draw();
+				return;
+			}
+			const p = pick(ev.clientX, ev.clientY);
+			if (p.node) {
+				canvas.style.cursor = "pointer";
+				if (tooltip) {
+					tooltip.hidden = false;
+					tooltip.textContent =
+						p.node.type === "hub" ? p.node.label : p.node.label;
+					const railRect = rail
+						? rail.getBoundingClientRect()
+						: canvas.getBoundingClientRect();
+					const rect = canvas.getBoundingClientRect();
+					tooltip.style.left = `${rect.left - railRect.left + p.x}px`;
+					tooltip.style.top = `${rect.top - railRect.top + p.y - p.node.r - 10}px`;
+				}
+			} else {
+				canvas.style.cursor = "grab";
+				if (tooltip) tooltip.hidden = true;
+			}
+		});
+
+		canvas.addEventListener("pointerleave", () => {
+			if (tooltip) tooltip.hidden = true;
+		});
+
+		canvas.addEventListener("pointerup", (ev) => {
+			const moved = Math.hypot(ev.clientX - downX, ev.clientY - downY);
+			if (moved < 5 && downNode && downNode.href) {
+				window.location.assign(downNode.href);
+			}
+			dragNode = null;
+			downNode = null;
+			canvas.style.cursor = "grab";
+		});
+
+		const reduced = window.matchMedia(
+			"(prefers-reduced-motion: reduce)"
+		).matches;
+		if (reduced) {
+			// 非表示(clientWidth === 0)で初期化された場合は、表示された
+			// タイミング(リサイズ)で改めて収束させる。
+			const settle = () => {
+				if (canvas.clientWidth === 0) return;
+				for (let i = 0; i < 400; i++) step();
+				draw();
+			};
+			settle();
+			// サイズが変われば境界も変わるので、リサイズごとに再収束させる
+			window.addEventListener("resize", settle);
+		} else {
+			// 収束したら止まり、操作(ドラッグ・リサイズ)で再開するループ。
+			// media query 非表示(clientWidth === 0)の間も回さない。
+			let running = false;
+			let idleFrames = 0;
+			function loop() {
+				if (canvas.clientWidth === 0) {
+					running = false;
+					return;
+				}
+				step();
+				draw();
+				const maxV = nodes.reduce(
+					(m, n) => Math.max(m, Math.abs(n.vx) + Math.abs(n.vy)),
+					0
+				);
+				idleFrames = dragNode || maxV > 0.05 ? 0 : idleFrames + 1;
+				if (idleFrames > 90) {
+					running = false;
+					return;
+				}
+				requestAnimationFrame(loop);
+			}
+			function wake() {
+				idleFrames = 0;
+				if (!running) {
+					running = true;
+					requestAnimationFrame(loop);
+				}
+			}
+			wake();
+			canvas.addEventListener("pointerdown", wake);
+			window.addEventListener("resize", wake);
+		}
+	})();
+</script>
+
+<style>
+	.rail {
+		/* ノートカードの外、机の台紙にじかに置いたメモ用紙。
+		   カード(max-width 944px + 余白)の右隣に固定 */
+		position: fixed;
+		top: 96px;
+		left: 1020px;
+		width: 270px;
+		transform: rotate(-0.9deg);
+	}
+
+	.rail canvas {
+		display: block;
+		width: 100%;
+		height: 330px;
+		cursor: grab;
+		border: 1.5px solid var(--color-rule);
+		border-radius: 9px 13px 8px 14px / 14px 8px 13px 9px;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+		touch-action: none;
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.graph-tooltip {
+		position: absolute;
+		transform: translate(-50%, -100%);
+		background: var(--color-paper);
+		border: 1px solid var(--color-rule);
+		border-radius: 6px;
+		padding: 3px 9px;
+		font-size: 11.5px;
+		color: var(--color-ink);
+		white-space: nowrap;
+		pointer-events: none;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+		z-index: 5;
+	}
+
+	@media (max-width: 1320px) {
+		.rail {
+			display: none;
+		}
+	}
+</style>

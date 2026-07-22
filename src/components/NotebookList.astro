@@ -1,0 +1,94 @@
+---
+// Shared "notebook page" article list — a column of .row entries broken up
+// by red-ink year headers and blank spacer rows, on the ruled/grid sheet
+// background defined globally in Base.astro. Used by the top page, the full
+// post log, category/tag archives, and search results so all four share the
+// exact same reading grammar.
+export interface NotebookEntry {
+	slug: string;
+	title: string;
+	date: Date | null;
+	terms: Array<{ slug: string; label: string }>;
+}
+
+interface Props {
+	entries: NotebookEntry[];
+	/** Paint the first rendered row with the highlighter-pen "latest" treatment. */
+	highlightFirst?: boolean;
+}
+
+const { entries, highlightFirst = false } = Astro.props;
+
+const JST_YEAR: Intl.DateTimeFormatOptions = {
+	timeZone: "Asia/Tokyo",
+	year: "numeric",
+};
+const JST_MM_DD: Intl.DateTimeFormatOptions = {
+	timeZone: "Asia/Tokyo",
+	month: "2-digit",
+	day: "2-digit",
+};
+
+function getJstYear(date: Date): string {
+	return new Intl.DateTimeFormat("en-US", JST_YEAR).format(date);
+}
+
+function getJstMonthDay(date: Date): string {
+	const parts = new Intl.DateTimeFormat("en-US", JST_MM_DD).formatToParts(date);
+	const get = (type: Intl.DateTimeFormatPartTypes) =>
+		parts.find((p) => p.type === type)?.value ?? "";
+	return `${get("month")}.${get("day")}`;
+}
+
+// Entries are expected pre-sorted (newest first). Group consecutive entries
+// sharing a JST year into blocks, undated entries fall into a trailing
+// "未定" (undated) block so nothing is silently dropped.
+interface YearGroup {
+	year: string;
+	entries: NotebookEntry[];
+}
+
+const groups: YearGroup[] = [];
+for (const entry of entries) {
+	const year = entry.date ? getJstYear(entry.date) : "未定";
+	const last = groups[groups.length - 1];
+	if (last && last.year === year) {
+		last.entries.push(entry);
+	} else {
+		groups.push({ year, entries: [entry] });
+	}
+}
+---
+
+<div class="sheet">
+	{
+		groups.map((group, groupIndex) => (
+			<>
+				<div class="row">
+					<span class="margin year">{group.year}</span>
+					<span class="body" />
+				</div>
+				{group.entries.map((entry, entryIndex) => {
+					const isFirstOverall = groupIndex === 0 && entryIndex === 0;
+					const primaryTerm = entry.terms[0];
+					return (
+						<div class:list={["row", highlightFirst && isFirstOverall && "latest"]}>
+							<span class="margin">
+								{entry.date ? getJstMonthDay(entry.date) : "—"}
+							</span>
+							<span class="body">
+								<a href={`/posts/${entry.slug}`}>{entry.title}</a>
+								{primaryTerm && (
+									<span class="cat">（{primaryTerm.label}）</span>
+								)}
+							</span>
+						</div>
+					);
+				})}
+				{groupIndex < groups.length - 1 && (
+					<div class="row blank" aria-hidden="true" />
+				)}
+			</>
+		))
+	}
+</div>

@@ -1,23 +1,13 @@
 ---
-import {
-	getEmDashCollection,
-	getEntryTerms,
-	getSiteSettings,
-	getTaxonomyTerms,
-} from "emdash";
+import { getEmDashCollection, getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
-import LogEntry from "../components/LogEntry.astro";
-import {
-	comparePublishedDateDesc,
-	formatPublishedDate,
-	getPublishedDate,
-} from "../utils/post-date";
-import { getPostKind } from "../utils/post-kind";
+import NotebookList from "../components/NotebookList.astro";
+import { toNotebookEntries } from "../utils/notebook-entries";
+import { comparePublishedDateDesc, getPublishedDate } from "../utils/post-date";
 import { FALLBACK_SITE_TITLE, FALLBACK_SITE_TAGLINE } from "../constants/site";
 
 const { entries: posts, cacheHint } = await getEmDashCollection("posts");
 const settings = await getSiteSettings();
-const categoryTerms = await getTaxonomyTerms("category");
 
 Astro.cache.set(cacheHint);
 
@@ -25,42 +15,28 @@ const siteTitle = settings.title || FALLBACK_SITE_TITLE;
 const siteTagline = settings.tagline || FALLBACK_SITE_TAGLINE;
 
 const sortedPosts = posts.toSorted(comparePublishedDateDesc);
-const latestPost = sortedPosts[0];
-const feedPosts = sortedPosts.slice(1, 11);
 
-const latestDate = getPublishedDate(latestPost);
-// Undated posts sort to the end, so scan from the back for the oldest
-// post that actually has a published date.
-const oldestDate =
-	sortedPosts
-		.toReversed()
-		.map(getPublishedDate)
-		.find((date) => date !== null) ?? null;
+const notebookEntries = await toNotebookEntries(sortedPosts);
 
-// Category terms per post, fetched in parallel. `post.data.id` is the DB
-// ULID (required by getEntryTerms) — `post.id` is just the slug.
-const latestTerms = latestPost
-	? await getEntryTerms("posts", latestPost.data.id, "category")
-	: [];
-const feedTerms = await Promise.all(
-	feedPosts.map((post) => getEntryTerms("posts", post.data.id, "category"))
-);
+const JST_YEAR: Intl.DateTimeFormatOptions = {
+	timeZone: "Asia/Tokyo",
+	year: "numeric",
+};
+const getJstYear = (date: Date) =>
+	new Intl.DateTimeFormat("en-US", JST_YEAR).format(date);
 
-const latestKind = getPostKind(latestTerms);
-
-const uptimeSince = oldestDate ? formatPublishedDate(oldestDate)?.slice(0, 4) : null;
-const lastPushDate = latestDate ? formatPublishedDate(latestDate)?.slice(0, 10) : null;
+const dates = sortedPosts.map(getPublishedDate).filter((d): d is Date => d !== null);
+const newestYear = dates.length > 0 ? getJstYear(dates[0]) : null;
+const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null;
 ---
 
 <Base title={siteTitle} description={siteTagline}>
 	{
 		posts.length === 0 ? (
-			<div class="empty-wrap">
-				<div class="masthead">
-					<p class="kicker">HomeLab ・ Cycling ・ Notes</p>
-					<h1>{siteTitle}</h1>
-					<p>{siteTagline}</p>
-				</div>
+			<div class="empty-wrap notebook-card">
+				<span class="tape">作 業 記 録</span>
+				<h1>{siteTitle}</h1>
+				<p class="tagline">{siteTagline}</p>
 				<section class="empty-state">
 					<h2>No posts yet</h2>
 					<p>Create your first post in the admin panel.</p>
@@ -70,345 +46,145 @@ const lastPushDate = latestDate ? formatPublishedDate(latestDate)?.slice(0, 10) 
 				</section>
 			</div>
 		) : (
-			<div class="wrap">
-				<main>
-					<div class="masthead">
-						<p class="kicker">HomeLab ・ Cycling ・ Notes</p>
+			<>
+			<div class="page notebook-card">
+				<header class="site-head">
+					<div>
+						<span class="tape">作 業 記 録</span>
 						<h1>{siteTitle}</h1>
-						<p>{siteTagline}</p>
+						<p class="tagline">{siteTagline}</p>
 					</div>
-
-					{latestPost && (
-						<>
-							<p class="sec-label">
-								最新 <span class="count">// latest</span>
-							</p>
-							<a class="current" href={`/posts/${latestPost.id}`}>
-								<div class="meta">
-									<span class={`dot ${latestKind}`} aria-hidden="true" />
-									{latestDate && (
-										<time class="ts" datetime={latestDate.toISOString()}>
-											{formatPublishedDate(latestDate)}
-										</time>
-									)}
-									{latestTerms.map((term) => (
-										<span class={`tag ${latestKind}`}>{term.label}</span>
-									))}
-								</div>
-								<h2>{latestPost.data.title}</h2>
-								{latestPost.data.excerpt && <p>{latestPost.data.excerpt}</p>}
-							</a>
-						</>
-					)}
-
-					<p class="sec-label">
-						ログ <span class="count">// {posts.length} entries</span>
-					</p>
-					<ul class="feed">
-						{feedPosts.map((post, i) => {
-							const terms = feedTerms[i] ?? [];
-							return (
-								<LogEntry
-									title={post.data.title ?? "Untitled"}
-									href={`/posts/${post.id}`}
-									date={getPublishedDate(post)}
-									terms={terms.map((t) => ({ slug: t.slug, label: t.label }))}
-									kind={getPostKind(terms)}
-								/>
-							);
-						})}
-					</ul>
-					<a class="all-entries" href="/posts">
-						all entries →
-					</a>
-				</main>
-
-				<aside class="rail">
-					<div class="panel">
-						<h4>system</h4>
-						<div class="stat-row">
-							<span class="k">uptime</span>
-							<span class="v accent">{uptimeSince ? `since ${uptimeSince}` : "—"}</span>
-						</div>
-						<div class="stat-row">
-							<span class="k">entries</span>
-							<span class="v">{posts.length}</span>
-						</div>
-						<div class="stat-row">
-							<span class="k">last push</span>
-							<span class="v">{lastPushDate ?? "—"}</span>
-						</div>
-						<div class="stat-row">
-							<span class="k">runtime</span>
-							<span class="v">CF Workers</span>
-						</div>
+					<div class="meta">
+						<b>{posts.length} entries</b>
+						<br />
+						{oldestYear && newestYear && (
+							oldestYear === newestYear ? oldestYear : `${oldestYear} – ${newestYear}`
+						)}
 					</div>
+				</header>
 
-					<div class="panel">
-						<h4>tags</h4>
-						<div class="taglist">
-							{categoryTerms.map((term) => (
-								<a
-									href={`/category/${term.slug}`}
-									class={`tag ${getPostKind([term])}`}
-								>
-									{term.label}
-								</a>
-							))}
-						</div>
-					</div>
+				<NotebookList entries={notebookEntries} highlightFirst />
 
-					<div class="panel">
-						<h4>legend</h4>
-						<div class="legend">
-							<span class="li">
-								<span class="dot tech" aria-hidden="true" />
-								<span>いじった記録</span>
-								<span class="k">tech</span>
-							</span>
-							<span class="li">
-								<span class="dot life" aria-hidden="true" />
-								<span>水槽と人生</span>
-								<span class="k">life</span>
-							</span>
-						</div>
+				<footer class="page-foot">
+					<div class="doodle" aria-hidden="true">
+						<span class="box">RTX830</span>
+						<span class="wire">──→</span>
+						<span class="box">New Relic</span>
 					</div>
-				</aside>
+					<div>
+						<a href="/search">search</a> · <a href="/rss.xml">rss</a> · <span>p.1</span>
+					</div>
+				</footer>
 			</div>
+		</>
 		)
 	}
 </Base>
 
 <style>
-	.wrap {
-		max-width: 1080px;
-		margin: 0 auto;
-		padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 40px) 80px;
-		display: grid;
-		grid-template-columns: 1fr 260px;
-		gap: clamp(28px, 5vw, 56px);
-		align-items: start;
+	.page {
+		/* ノートカードにはリストだけ。グラフは机の上(カードの外)に置く */
+		max-width: 944px;
+		padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 44px) 48px;
 	}
 
-	@media (max-width: 800px) {
-		.wrap {
-			grid-template-columns: 1fr;
-			gap: 40px;
-		}
+	.site-head {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 20px;
+		padding: 0 0 18px 8px;
 	}
 
-	/* Masthead */
-	.masthead {
-		margin-bottom: 34px;
+	.site-head h1 {
+		font-size: clamp(36px, 5.5vw, 52px);
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		line-height: 1.25;
+		margin: 0 0 6px;
 	}
 
-	.masthead h1 {
-		font-size: clamp(30px, 5vw, 44px);
-		line-height: 1.12;
-		letter-spacing: -0.01em;
-		margin: 0 0 12px;
-		text-wrap: balance;
-		font-weight: 800;
-	}
-
-	.masthead p {
-		margin: 0;
-		max-width: 46ch;
+	.site-head .tagline {
+		font-size: 14px;
 		color: var(--color-muted);
-		font-size: 15px;
+		margin: 0;
 	}
 
-	.masthead .kicker {
-		font-family: var(--font-mono);
+	.site-head .meta {
+		flex: none;
+		text-align: right;
 		font-size: 12px;
-		letter-spacing: 0.14em;
-		color: var(--color-accent-ink);
-		margin: 0 0 14px;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-
-	.masthead .kicker::before {
-		content: "";
-		width: 22px;
-		height: 1px;
-		background: var(--color-accent);
-	}
-
-	/* Featured / current card */
-	.current {
-		display: block;
-		background: var(--color-panel);
-		border: 1px solid var(--color-line);
-		border-radius: 12px;
-		padding: 22px 24px;
-		box-shadow: var(--shadow-card);
-		margin-bottom: 40px;
-		text-decoration: none;
-		color: inherit;
-		transition:
-			border-color var(--transition-base),
-			transform var(--transition-base);
-	}
-
-	.current:hover {
-		border-color: var(--color-accent);
-		transform: translateY(-2px);
-	}
-
-	.current:focus-visible {
-		outline: 2px solid var(--color-accent);
-		outline-offset: 3px;
-	}
-
-	.current .meta {
-		font-family: var(--font-mono);
-		font-size: 12.5px;
 		color: var(--color-muted);
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		flex-wrap: wrap;
-		margin-bottom: 12px;
-	}
-
-	.current .ts {
+		line-height: 1.9;
 		font-variant-numeric: tabular-nums;
-		color: var(--color-ink-soft);
 	}
 
-	.current h2 {
-		font-size: clamp(20px, 3vw, 26px);
-		line-height: 1.28;
-		margin: 0 0 10px;
-		text-wrap: balance;
-		font-weight: 700;
+	.site-head .meta b {
+		color: var(--color-red);
+		font-weight: 600;
 	}
 
-	.current p {
-		margin: 0;
-		color: var(--color-ink-soft);
-		font-size: 15px;
-		max-width: 60ch;
-	}
-
-	.all-entries {
-		display: inline-block;
-		margin-top: 16px;
-		font-family: var(--font-mono);
-		font-size: 13px;
-		color: var(--color-accent-ink);
-		text-decoration: none;
-	}
-
-	.all-entries:hover {
-		text-decoration: underline;
-	}
-
-	/* Instrument rail */
-	.rail {
-		display: flex;
-		flex-direction: column;
-		gap: 28px;
-		position: sticky;
-		top: calc(var(--nav-height) + 10px);
-	}
-
-	@media (max-width: 800px) {
-		.rail {
-			position: static;
-		}
-	}
-
-	.panel {
-		background: var(--color-panel);
-		border: 1px solid var(--color-line);
-		border-radius: 12px;
-		padding: 18px;
-	}
-
-	.panel h4 {
-		font-family: var(--font-mono);
-		font-size: 11px;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--color-muted);
-		margin: 0 0 14px;
-	}
-
-	.stat-row {
+	.page-foot {
 		display: flex;
 		justify-content: space-between;
-		align-items: baseline;
-		padding: 7px 0;
-		border-bottom: 1px dashed var(--color-line);
-		font-size: 13px;
-	}
-
-	.stat-row:last-child {
-		border-bottom: none;
-	}
-
-	.stat-row .k {
-		color: var(--color-muted);
-		font-family: var(--font-mono);
+		align-items: center;
+		gap: 18px;
+		padding-top: 20px;
 		font-size: 12px;
-	}
-
-	.stat-row .v {
-		color: var(--color-text);
-		font-family: var(--font-mono);
-		font-weight: 600;
+		color: var(--color-muted);
 		font-variant-numeric: tabular-nums;
 	}
 
-	.stat-row .v.accent {
-		color: var(--color-accent-ink);
+	.page-foot a {
+		color: inherit;
+		text-decoration: none;
 	}
 
-	.taglist {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
+	.page-foot a:hover {
+		color: var(--color-red);
 	}
 
-	.legend {
-		display: flex;
-		flex-direction: column;
-		gap: 9px;
+	@media (max-width: 800px) {
+		.cols {
+			display: block;
+		}
 	}
 
-	.legend .li {
-		display: flex;
-		align-items: center;
-		gap: 9px;
-		font-size: 12.5px;
-		color: var(--color-ink-soft);
-	}
+	@media (max-width: 640px) {
+		.page {
+			padding: 28px 14px 40px;
+		}
 
-	.legend .li .k {
-		font-family: var(--font-mono);
-		color: var(--color-muted);
-		font-size: 12px;
+		.site-head {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+
+		.site-head .meta {
+			text-align: left;
+		}
 	}
 
 	/* Empty state */
 	.empty-wrap {
-		max-width: 1080px;
-		margin: 0 auto;
+		max-width: 720px;
 		padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 40px) 80px;
 	}
 
+	.empty-wrap h1 {
+		font-size: clamp(28px, 5vw, 38px);
+		margin: 0 0 10px;
+	}
+
+	.empty-wrap .tagline {
+		color: var(--color-muted);
+		margin: 0;
+	}
+
 	.empty-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: var(--spacing-3);
+		margin-top: 40px;
 		text-align: center;
-		padding: var(--spacing-20) var(--spacing-6);
-		max-width: 400px;
-		margin: 0 auto;
+		padding: var(--spacing-16) var(--spacing-6);
 	}
 
 	.empty-state h2 {
@@ -424,16 +200,11 @@ const lastPushDate = latestDate ? formatPublishedDate(latestDate)?.slice(0, 10) 
 		display: inline-block;
 		margin-top: var(--spacing-4);
 		padding: var(--spacing-3) var(--spacing-6);
-		background: var(--color-accent);
-		color: var(--color-on-accent);
+		background: var(--color-red);
+		color: #ffffff;
 		text-decoration: none;
 		border-radius: var(--radius);
 		font-size: var(--font-size-sm);
 		font-weight: 500;
-		transition: background var(--transition-fast);
-	}
-
-	.btn:hover {
-		background: var(--color-accent-hover);
 	}
 </style>

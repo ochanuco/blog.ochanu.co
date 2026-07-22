@@ -8,6 +8,7 @@ import {
 } from "emdash/ui";
 import { createPublicPageContext } from "emdash/page";
 import "../styles/theme.css";
+import GraphRail from "../components/GraphRail.astro";
 import { FALLBACK_SITE_TITLE } from "../constants/site";
 
 interface Props {
@@ -48,9 +49,6 @@ const faviconUrl =
 // If title already includes site title (from getSeoMeta), use as-is
 const fullTitle = title.includes(siteTitle) ? title : `${title} — ${siteTitle}`;
 
-// Fetch primary menu defined in seed
-const menu = await getMenu("primary");
-
 // Build public page context for plugin contributions
 // SEO data is passed here and rendered securely by EmDashHead
 const pageCtx = createPublicPageContext({
@@ -69,6 +67,10 @@ const pageCtx = createPublicPageContext({
 
 // Check if user is logged in (for showing admin link)
 const isLoggedIn = !!Astro.locals.user;
+
+// Primary menu (admin-managed). "/" is redundant with the ~/ home link.
+const menu = await getMenu("primary");
+const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 ---
 
 <!doctype html>
@@ -79,7 +81,7 @@ const isLoggedIn = !!Astro.locals.user;
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&family=JetBrains+Mono:wght@400;500&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap"
 			rel="stylesheet"
 		/>
 		{faviconUrl && <link rel="icon" href={faviconUrl} />}
@@ -101,50 +103,50 @@ const isLoggedIn = !!Astro.locals.user;
 	</head>
 	<body>
 		<EmDashBodyStart page={pageCtx} />
-		<header class="statusbar">
-			<a href="/" class="host">
-				<span class="led" aria-hidden="true"></span>
-				<span class="prompt">~/</span><span class="name">{siteTitle}</span>
-			</a>
-			<nav class="status-nav">
+		<header class="notebook-head">
+			<a href="/" class="home-link">~/{siteTitle}</a>
+			<nav class="head-nav">
 				{
-					menu?.items.map((item) => (
+					menuItems.map((item) => (
 						<a href={item.url} target={item.target}>
 							{item.label}
 						</a>
 					))
 				}
-				<a href="/search">/search</a>
+				<a href="/search">search</a>
+				<a href="/rss.xml">rss</a>
 				{
 					isLoggedIn && (
-						<a href="/_emdash/admin" class="status-admin">
+						<a href="/_emdash/admin" class="head-admin">
 							admin
 						</a>
 					)
 				}
+				<button
+					type="button"
+					class="theme-toggle"
+					id="status-theme-toggle"
+					aria-label="テーマ切り替え"
+				>
+					◐ auto
+				</button>
 			</nav>
-			<span class="spacer"></span>
-			<span class="clock" id="status-clock"></span>
-			<button
-				type="button"
-				class="theme-toggle"
-				id="status-theme-toggle"
-				aria-label="テーマ切り替え"
-			>
-				◐ auto
-			</button>
 		</header>
 
 		<main>
 			<slot />
 		</main>
 
+		{/* 机の上のメモ用紙(記事グラフ)。全ページ共通 */}
+		<GraphRail />
+
 		<footer class="foot">
 			<WidgetArea name="footer" />
-			<div class="bar"></div>
-			ochanu.co — built on EmDash / Astro / Cloudflare Workers · © {
-				new Date().getFullYear()
-			} ochanuco · <a href="/rss.xml">rss</a>
+			<p class="foot-line">
+				ochanu.co — built on EmDash / Astro / Cloudflare Workers · © {
+					new Date().getFullYear()
+				} ochanuco · <a href="/rss.xml">rss</a>
+			</p>
 		</footer>
 
 		<script>
@@ -218,35 +220,6 @@ const isLoggedIn = !!Astro.locals.user;
 				});
 		</script>
 
-		<script>
-			// JST clock — rendered client-side so it ticks after page load.
-			const clockEl = document.getElementById("status-clock");
-
-			const CLOCK_PARTS: Intl.DateTimeFormatOptions = {
-				timeZone: "Asia/Tokyo",
-				year: "numeric",
-				month: "2-digit",
-				day: "2-digit",
-				hour: "2-digit",
-				minute: "2-digit",
-				hour12: false,
-			};
-
-			function renderClock() {
-				if (!clockEl) return;
-				const parts = new Intl.DateTimeFormat("en-US", CLOCK_PARTS).formatToParts(
-					new Date()
-				);
-				const get = (type: Intl.DateTimeFormatPartTypes) =>
-					parts.find((p) => p.type === type)?.value ?? "";
-				const formatted = `${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")}`;
-				clockEl.innerHTML = `<b>JST</b> ${formatted}`;
-			}
-
-			renderClock();
-			setInterval(renderClock, 30000);
-		</script>
-
 		<style is:global>
 			*:where(:not([class*="emdash"]):not([class*="ec-"])),
 			*:where(:not([class*="emdash"]):not([class*="ec-"]))::before,
@@ -277,56 +250,55 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			:root {
-				/* Colors - Light mode (default)
-				   "phosphor + water" — cool ink ground, teal accent that reads
-				   as both terminal glow and aquarium water. */
-				--color-bg: #eef1f4;
-				--color-bg-subtle: #e9edf1;
-				--color-text: #18202a;
-				--color-text-secondary: #3d4856;
-				--color-muted: #63707f;
-				--color-border: #dbe2e9;
-				--color-border-subtle: #e8ecf1;
-				--color-surface: #ffffff;
-				--color-accent: #0f8a7d;
-				--color-accent-hover: #0b6f64;
+				/* Colors — "engineer's notebook": graph-paper ground, red-pen
+				   accent for year markers, a highlighter-yellow wash for the
+				   latest entry. */
+				--color-desk: #eceae4;
+				--color-paper: #fafbf8;
+				--color-grid: #e3ebf1;
+				--color-rule: #c2d0dc;
+				--color-ink: #2a2c30;
+				--color-muted: #74808d;
+				--color-red: #d94f43;
+				--color-hl: rgba(255, 222, 74, 0.5);
+				--tape-bg: rgba(228, 213, 160, 0.55);
+				--tape-ink: #6d6450;
+
+				/* Legacy color aliases — kept so components that predate this
+				   redesign (e.g. src/pages/pages/[slug].astro, which is out of
+				   scope for this pass) keep rendering sensibly instead of
+				   falling back to unstyled defaults. */
+				--color-bg: var(--color-paper);
+				--color-bg-subtle: var(--color-paper);
+				--color-text: var(--color-ink);
+				--color-text-secondary: var(--color-ink);
+				--color-border: var(--color-rule);
+				--color-border-subtle: var(--color-grid);
+				--color-surface: var(--color-paper);
+				--color-accent: var(--color-red);
+				--color-accent-hover: var(--color-red);
 				--color-on-accent: #ffffff;
 				--color-accent-ring: color-mix(
 					in srgb,
-					var(--color-accent) 25%,
+					var(--color-red) 25%,
 					transparent
 				);
+				--led-tech: var(--color-red);
+				--led-life: var(--color-red);
+				--led-life-ink: var(--color-red);
+				--color-panel: var(--color-paper);
+				--color-panel-2: var(--color-paper);
+				--color-line: var(--color-rule);
+				--color-line-strong: var(--color-rule);
+				--color-ink-soft: var(--color-ink);
+				--color-accent-ink: var(--color-red);
 
-				/* Category LEDs — teal for tinkering (infra/aquarium),
-				   amber for life events. Semantic, separate from the accent. */
-				--led-tech: var(--color-accent);
-				--led-life: #b9781a;
-				/* Darker ink for life-tag text — the LED amber alone is ~3:1 on
-				   the translucent chip background in light mode. */
-				--led-life-ink: #83510d;
-				--led-life-dim: color-mix(in srgb, var(--led-life) 14%, transparent);
-				--accent-dim: color-mix(in srgb, var(--color-accent) 12%, transparent);
-
-				/* "Uptime log" redesign tokens — panels, hairlines, and the
-				   secondary ink tone used by the statusbar/feed/rail system.
-				   Kept distinct from --color-surface/--color-border/
-				   --color-text-secondary so the legacy card components above
-				   are unaffected. */
-				--color-panel: #ffffff;
-				--color-panel-2: #f6f8fa;
-				--color-line: #dce2e9;
-				--color-line-strong: #c6cfda;
-				--color-ink-soft: #3c4757;
-				--color-accent-ink: #0a6d63;
-				--shadow-card:
-					0 1px 2px rgba(20, 30, 45, 0.06), 0 8px 24px rgba(20, 30, 45, 0.06);
-
-				/* Typography */
-				--font-sans:
-					"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-					sans-serif;
-				--font-mono:
-					"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+				/* Typography — handwritten Japanese face applied site-wide. */
+				--font-hand:
+					"Klee One", "Klee", "Tsukushi A Round Gothic",
+					"Hiragino Maru Gothic ProN", sans-serif;
+				--font-sans: var(--font-hand);
+				--font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
 				/* Type scale - more refined */
 				--font-size-xs: 0.8125rem;
@@ -381,7 +353,7 @@ const isLoggedIn = !!Astro.locals.user;
 				--transition-base: 180ms ease;
 
 				/* Nav */
-				--nav-height: 64px;
+				--nav-height: 53px;
 
 				/* Search */
 				--search-input-width: 180px;
@@ -407,30 +379,23 @@ const isLoggedIn = !!Astro.locals.user;
 				/* Shadows */
 				--shadow-dropdown: 0 8px 30px rgba(0, 0, 0, 0.12);
 				--shadow-btn-active: 0 1px 2px rgba(0, 0, 0, 0.05);
+				--shadow-card:
+					0 1px 2px rgba(20, 30, 45, 0.06), 0 8px 24px rgba(20, 30, 45, 0.06);
 			}
 
 			/* Dark mode via system preference (when no explicit class) */
 			@media (prefers-color-scheme: dark) {
 				:root:not(.light) {
-					--color-bg: #0e1319;
-					--color-bg-subtle: #0b0f14;
-					--color-text: #d8dfe8;
-					--color-text-secondary: #aeb9c6;
-					--color-muted: #7e8b9b;
-					--color-border: #232d39;
-					--color-border-subtle: #1b2530;
-					--color-surface: #161d26;
-					--color-accent: #4fd6c4;
-					--color-accent-hover: #7ee6d8;
-					--led-life: #e0a24a;
-					--led-life-ink: var(--led-life);
-
-					--color-panel: #161d26;
-					--color-panel-2: #1b232e;
-					--color-line: #232d39;
-					--color-line-strong: #303c4b;
-					--color-ink-soft: #aeb9c6;
-					--color-accent-ink: #7ee6d8;
+					--color-desk: #141619;
+					--color-paper: #1d2025;
+					--color-grid: rgba(125, 145, 165, 0.13);
+					--color-rule: #3a4450;
+					--color-ink: #d6dae0;
+					--color-muted: #8994a2;
+					--color-red: #e07a6e;
+					--color-hl: rgba(255, 222, 74, 0.26);
+					--tape-bg: rgba(190, 175, 120, 0.22);
+					--tape-ink: #b8ab84;
 					--shadow-card:
 						0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
 				}
@@ -438,25 +403,16 @@ const isLoggedIn = !!Astro.locals.user;
 
 			/* Explicit dark mode */
 			:root.dark {
-				--color-bg: #0e1319;
-				--color-bg-subtle: #0b0f14;
-				--color-text: #d8dfe8;
-				--color-text-secondary: #aeb9c6;
-				--color-muted: #7e8b9b;
-				--color-border: #232d39;
-				--color-border-subtle: #1b2530;
-				--color-surface: #161d26;
-				--color-accent: #4fd6c4;
-				--color-accent-hover: #7ee6d8;
-				--led-life: #e0a24a;
-				--led-life-ink: var(--led-life);
-
-				--color-panel: #161d26;
-				--color-panel-2: #1b232e;
-				--color-line: #232d39;
-				--color-line-strong: #303c4b;
-				--color-ink-soft: #aeb9c6;
-				--color-accent-ink: #7ee6d8;
+				--color-desk: #141619;
+				--color-paper: #1d2025;
+				--color-grid: rgba(125, 145, 165, 0.13);
+				--color-rule: #3a4450;
+				--color-ink: #d6dae0;
+				--color-muted: #8994a2;
+				--color-red: #e07a6e;
+				--color-hl: rgba(255, 222, 74, 0.26);
+				--tape-bg: rgba(190, 175, 120, 0.22);
+				--tape-ink: #b8ab84;
 				--shadow-card:
 					0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
 			}
@@ -466,24 +422,36 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			body {
-				font-family: var(--font-sans);
+				font-family: var(--font-hand);
 				font-size: var(--font-size-base);
 				line-height: var(--leading-relaxed);
-				color: var(--color-text);
-				background: var(--color-bg);
+				color: var(--color-ink);
+				min-height: 100vh;
 				-webkit-font-smoothing: antialiased;
 				-moz-osx-font-smoothing: grayscale;
-				min-height: 100vh;
+				/* 外側=机の台紙。方眼はノートカード内の .sheet だけに敷く */
+				background: var(--color-desk);
+			}
+
+			/* ノートカード — 台紙の上に乗る1枚のノート。各ページの
+			   コンテナがこのクラスを付ける */
+			.notebook-card {
+				background: var(--color-paper);
+				border: 1px solid var(--color-rule);
+				border-radius: 14px;
+				box-shadow: 0 10px 32px rgba(0, 0, 0, 0.09);
+				margin: 8px clamp(16px, 3vw, 40px) 48px;
 			}
 
 			a:where(:not([class*="emdash"]):not([class*="ec-"])) {
-				color: var(--color-accent);
+				color: var(--color-red);
 				text-decoration: none;
 				transition: color var(--transition-fast);
 			}
 
 			a:where(:not([class*="emdash"]):not([class*="ec-"])):hover {
-				color: var(--color-accent-hover);
+				color: var(--color-red);
+				text-decoration: underline;
 			}
 
 			img {
@@ -498,7 +466,7 @@ const isLoggedIn = !!Astro.locals.user;
 			h4,
 			h5,
 			h6 {
-				font-family: var(--font-sans);
+				font-family: var(--font-hand);
 				line-height: var(--leading-tight);
 				font-weight: 600;
 				letter-spacing: var(--tracking-snug);
@@ -510,333 +478,263 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			::selection {
-				background: var(--color-accent);
+				background: var(--color-red);
 				color: white;
 			}
 		</style>
 
-		<!-- "Uptime log" design system: shared across index.astro, posts/index.astro,
-		     and LogEntry.astro, so it lives here as global CSS instead of being
-		     duplicated in every page that renders a log feed. -->
+		<!-- Notebook design system — shared across every page: the masking-tape
+		     label, the ruled/grid article-list sheet, its .row entries, the
+		     corner wiring doodle, and the common hand-drawn border radius.
+		     Lives here as global CSS instead of being duplicated per page. -->
 		<style is:global>
-			.sec-label {
-				font-family: var(--font-mono);
+			.tape {
+				display: inline-block;
+				font-family: var(--font-hand);
 				font-size: 12px;
-				letter-spacing: 0.1em;
-				text-transform: uppercase;
-				color: var(--color-muted);
+				letter-spacing: 0.16em;
+				color: var(--tape-ink);
+				background: var(--tape-bg);
+				padding: 3px 20px;
+				transform: rotate(-1.6deg);
+				margin-bottom: 14px;
+				box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+			}
+
+			.hand-box {
+				border-radius: 9px 13px 8px 14px / 14px 8px 13px 9px;
+			}
+
+			.sheet {
+				/* Grid + a vertical rule marking off the date margin column. */
+				background:
+					linear-gradient(
+						to right,
+						transparent 0 103px,
+						var(--color-rule) 103px 104px,
+						transparent 104px
+					),
+					repeating-linear-gradient(
+						to bottom,
+						transparent 0 19px,
+						var(--color-grid) 19px 20px
+					),
+					repeating-linear-gradient(
+						to right,
+						transparent 0 19px,
+						var(--color-grid) 19px 20px
+					);
+				border-top: 1.5px solid var(--color-rule);
+			}
+
+			.row {
 				display: flex;
 				align-items: baseline;
-				gap: 10px;
-				margin: 0 0 var(--spacing-4);
+				line-height: 40px;
+				min-height: 40px;
 			}
 
-			.sec-label::after {
-				content: "";
-				flex: 1;
-				height: 1px;
-				background: var(--color-line);
-				transform: translateY(-3px);
-			}
-
-			.sec-label .count {
-				color: var(--color-ink-soft);
-			}
-
-			.dot {
-				width: 7px;
-				height: 7px;
-				border-radius: 50%;
+			.row .margin {
 				flex: none;
-			}
-
-			.dot.tech {
-				background: var(--color-accent);
-			}
-
-			.dot.life {
-				background: var(--led-life);
-			}
-
-			.tag {
-				font-family: var(--font-mono);
-				font-size: 11.5px;
-				padding: 2px 8px;
-				border-radius: 5px;
-				border: 1px solid var(--color-line-strong);
-				color: var(--color-muted);
-				white-space: nowrap;
-				text-decoration: none;
-				transition:
-					color var(--transition-fast),
-					border-color var(--transition-fast);
-			}
-
-			.tag.tech {
-				color: var(--color-accent-ink);
-				border-color: color-mix(
-					in srgb,
-					var(--color-accent) 40%,
-					var(--color-line-strong)
-				);
-				background: var(--accent-dim);
-			}
-
-			.tag.life {
-				color: var(--led-life-ink);
-				border-color: color-mix(
-					in srgb,
-					var(--led-life) 40%,
-					var(--color-line-strong)
-				);
-				background: var(--led-life-dim);
-			}
-
-			.feed {
-				list-style: none;
-				margin: 0;
-				padding: 0;
-			}
-
-			.entry {
-				display: grid;
-				grid-template-columns: 152px 1fr;
-				gap: 4px 20px;
-				padding: 16px 12px;
-				border-radius: 9px;
-				border: 1px solid transparent;
-				transition:
-					background var(--transition-fast),
-					border-color var(--transition-fast);
-			}
-
-			.entry:hover {
-				background: var(--color-panel);
-				border-color: var(--color-line);
-			}
-
-			.entry + .entry {
-				border-top: 1px solid var(--color-line);
-				border-radius: 9px;
-			}
-
-			.entry:hover + .entry,
-			.entry:hover {
-				border-top-color: transparent;
-			}
-
-			.entry .when {
-				font-family: var(--font-mono);
+				width: 104px;
+				padding-right: 16px;
+				box-sizing: border-box;
+				text-align: right;
 				font-size: 12.5px;
 				color: var(--color-muted);
-				display: flex;
-				align-items: center;
-				gap: 8px;
-				padding-top: 3px;
 				font-variant-numeric: tabular-nums;
-				white-space: nowrap;
 			}
 
-			.entry .body {
+			.row .margin.year {
+				color: var(--color-red);
+				font-size: 13px;
+				font-weight: 600;
+				letter-spacing: 0.06em;
+			}
+
+			.row .body {
+				flex: 1;
+				padding-left: 14px;
+				font-size: 17px;
 				min-width: 0;
 			}
 
-			.entry h3 {
-				margin: 0 0 6px;
-				font-size: 16.5px;
-				font-weight: 650;
-				line-height: 1.4;
-			}
-
-			.entry h3 a {
-				color: var(--color-text);
+			.row .body a {
+				color: inherit;
 				text-decoration: none;
 			}
 
-			.entry:hover h3 a {
-				color: var(--color-accent-ink);
+			.row .body a:hover {
+				text-decoration: underline;
+				text-decoration-color: var(--color-red);
+				text-underline-offset: 5px;
 			}
 
-			.entry .tags {
+			.row.latest .body a {
+				font-weight: 600;
+				/* Highlighter-pen wash */
+				background: linear-gradient(
+					transparent 18%,
+					var(--color-hl) 18% 92%,
+					transparent 92%
+				);
+			}
+
+			.row.blank {
+				min-height: 20px;
+			}
+
+			.row .cat {
+				font-size: 12px;
+				color: var(--color-muted);
+				margin-left: 10px;
+			}
+
+			.doodle {
 				display: flex;
-				gap: 7px;
-				flex-wrap: wrap;
+				align-items: center;
+				gap: 8px;
+				font-size: 11px;
+				color: var(--color-muted);
+				transform: rotate(-1.2deg);
 			}
 
-			@media (max-width: 560px) {
-				.entry {
-					grid-template-columns: 1fr;
-					gap: 8px;
+			.doodle .box {
+				border: 1.5px solid var(--color-muted);
+				border-radius: 7px 10px 6px 11px / 11px 6px 10px 7px;
+				padding: 3px 10px;
+			}
+
+			.doodle .wire {
+				width: 30px;
+				text-align: center;
+				letter-spacing: -0.05em;
+			}
+
+			@media (max-width: 640px) {
+				.sheet {
+					background:
+						linear-gradient(
+							to right,
+							transparent 0 71px,
+							var(--color-rule) 71px 72px,
+							transparent 72px
+						),
+						repeating-linear-gradient(
+							to bottom,
+							transparent 0 19px,
+							var(--color-grid) 19px 20px
+						),
+						repeating-linear-gradient(
+							to right,
+							transparent 0 19px,
+							var(--color-grid) 19px 20px
+						);
 				}
 
-				.entry .when {
-					padding-top: 0;
+				.row .margin {
+					width: 72px;
+					padding-right: 10px;
 				}
 			}
 		</style>
 
 		<style>
-			.statusbar {
+			.notebook-head {
 				position: sticky;
 				top: 0;
 				z-index: 100;
 				display: flex;
 				align-items: center;
+				justify-content: space-between;
 				gap: 16px;
-				min-height: var(--nav-height);
-				padding: 12px clamp(16px, 4vw, 40px);
-				background: color-mix(in srgb, var(--color-bg) 82%, transparent);
-				backdrop-filter: blur(10px);
-				-webkit-backdrop-filter: blur(10px);
-				border-bottom: 1px solid var(--color-line);
-				font-family: var(--font-mono);
-				font-size: 13px;
+				padding: 14px clamp(16px, 4vw, 40px);
+				background: color-mix(in srgb, var(--color-paper) 88%, transparent);
+				backdrop-filter: blur(6px);
+				-webkit-backdrop-filter: blur(6px);
+				border-bottom: 1px solid var(--color-rule);
+				font-family: var(--font-hand);
+				font-size: 14px;
 			}
 
-			.host {
-				display: inline-flex;
-				align-items: center;
-				gap: 9px;
+			.home-link {
+				color: var(--color-ink);
+				text-decoration: none;
 				font-weight: 600;
 				letter-spacing: 0.01em;
-				color: var(--color-text);
+			}
+
+			.home-link:hover {
+				color: var(--color-red);
 				text-decoration: none;
-				flex: none;
 			}
 
-			.host .prompt {
-				color: var(--color-muted);
-			}
-
-			.host .name {
-				color: var(--color-accent-ink);
-			}
-
-			/* Status LED — signals "online", ties the homelab concept together */
-			.led {
-				width: 8px;
-				height: 8px;
-				border-radius: 50%;
-				background: var(--color-accent);
-				flex: none;
-				animation: led-pulse 2.6s ease-out infinite;
-			}
-
-			@keyframes led-pulse {
-				0% {
-					box-shadow: 0 0 0 0
-						color-mix(in srgb, var(--color-accent) 55%, transparent);
-				}
-				70% {
-					box-shadow: 0 0 0 6px transparent;
-				}
-				100% {
-					box-shadow: 0 0 0 0 transparent;
-				}
-			}
-
-			@media (prefers-reduced-motion: reduce) {
-				.led {
-					animation: none;
-				}
-			}
-
-			.status-nav {
+			.head-nav {
 				display: flex;
 				align-items: center;
-				gap: var(--spacing-5);
+				gap: 18px;
 				flex-wrap: wrap;
-				min-width: 0;
 			}
 
-			.status-nav a {
+			.head-nav a {
+				color: var(--color-muted);
 				text-decoration: none;
-				color: var(--color-text-secondary);
 				text-transform: lowercase;
-				transition: color var(--transition-fast);
 			}
 
-			.status-nav a:hover {
-				color: var(--color-accent);
+			.head-nav a:hover {
+				color: var(--color-red);
+				text-decoration: none;
 			}
 
-			.status-admin {
+			.head-admin {
 				color: var(--color-muted);
-			}
-
-			.statusbar .spacer {
-				flex: 1;
-			}
-
-			.clock {
-				color: var(--color-muted);
-				font-variant-numeric: tabular-nums;
-				white-space: nowrap;
-			}
-
-			.clock :global(b) {
-				color: var(--color-ink-soft);
-				font-weight: 600;
-			}
-
-			@media (max-width: 640px) {
-				.clock {
-					display: none;
-				}
 			}
 
 			.theme-toggle {
-				font-family: var(--font-mono);
-				font-size: 12px;
+				font-family: var(--font-hand);
+				font-size: 13px;
 				color: var(--color-muted);
 				background: transparent;
-				border: 1px solid var(--color-line-strong);
-				border-radius: 6px;
-				padding: 5px 10px;
+				border: none;
 				cursor: pointer;
-				transition:
-					border-color var(--transition-fast),
-					color var(--transition-fast);
+				padding: 0;
 			}
 
 			.theme-toggle:hover {
-				color: var(--color-text);
-				border-color: var(--color-accent);
+				color: var(--color-red);
 			}
 
 			.theme-toggle:focus-visible {
-				outline: 2px solid var(--color-accent);
+				outline: 2px solid var(--color-red);
 				outline-offset: 2px;
 			}
 
 			main {
-				min-height: calc(100vh - var(--nav-height) - 300px);
+				min-height: calc(100vh - var(--nav-height) - 260px);
 			}
 
-			/* Footer */
+			/* Footer(本文と同じく左寄せ) */
 			.foot {
-				max-width: var(--wide-width);
-				margin: 0 auto;
+				max-width: 760px;
+				margin: 0;
 				padding: var(--spacing-12) clamp(16px, 4vw, 40px) var(--spacing-12);
-				font-family: var(--font-mono);
+			}
+
+			.foot-line {
+				font-family: var(--font-hand);
 				font-size: 12px;
 				color: var(--color-muted);
 			}
 
-			.foot .bar {
-				height: 1px;
-				background: var(--color-line);
-				margin-bottom: 18px;
-			}
-
-			.foot a {
+			.foot-line a {
 				color: var(--color-muted);
 				text-decoration: underline;
 				text-underline-offset: 2px;
 			}
 
-			.foot a:hover {
-				color: var(--color-text);
+			.foot-line a:hover {
+				color: var(--color-red);
 			}
 
 			.foot :global(.widget-area) {
@@ -844,25 +742,16 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			@media (max-width: 640px) {
-				.statusbar {
+				.notebook-head {
 					flex-wrap: wrap;
 					row-gap: 8px;
-				}
-
-				.status-nav {
-					order: 3;
-					width: 100%;
-				}
-
-				.spacer {
-					display: none;
 				}
 			}
 		</style>
 
 		<script>
 			// ⌘K / Ctrl+K navigates to the search page (there's no inline search
-			// input in the statusbar anymore).
+			// input in the header anymore).
 			document.addEventListener("keydown", (e) => {
 				if ((e.metaKey || e.ctrlKey) && e.key === "k") {
 					const target = e.target;

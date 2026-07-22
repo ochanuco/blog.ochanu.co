@@ -2,11 +2,11 @@
 // SSR の部分一致検索。EmDash 組み込みの FTS5 検索(LiveSearch)は
 // unicode61 トークナイザのため日本語クエリを取りこぼすので、
 // タイトル・抜粋・本文への substring マッチで検索する。
-import { getEmDashCollection, getEntryTerms } from "emdash";
+import { getEmDashCollection } from "emdash";
 import Base from "../layouts/Base.astro";
-import LogEntry from "../components/LogEntry.astro";
-import { comparePublishedDateDesc, getPublishedDate } from "../utils/post-date";
-import { getPostKind } from "../utils/post-kind";
+import NotebookList from "../components/NotebookList.astro";
+import { comparePublishedDateDesc } from "../utils/post-date";
+import { toNotebookEntries } from "../utils/notebook-entries";
 import { extractText } from "../utils/reading-time";
 
 const query = Astro.url.searchParams.get("q")?.trim() || "";
@@ -30,30 +30,26 @@ const results = query
 	? posts.filter((post) => matchesQuery(post, query)).toSorted(comparePublishedDateDesc)
 	: [];
 
-const resultTerms = await Promise.all(
-	results.map((post) => getEntryTerms("posts", post.data.id, "category"))
-);
+const notebookEntries = await toNotebookEntries(results);
 ---
 
 <Base
 	title={query ? `Search: ${query}` : "Search"}
 	description="Search blog posts"
 >
-	<section class="search-page">
-		<p class="sec-label">
-			検索 <span class="count">// search</span>
-		</p>
+	<section class="search-page notebook-card">
+		<span class="tape">検 索</span>
 
 		<form method="get" action="/search" class="search-form" role="search">
 			<input
 				type="search"
 				name="q"
 				value={query}
-				placeholder="Search posts..."
-				class="search-input"
+				placeholder="キーワードを入力..."
+				class="search-input hand-box"
 				autofocus
 			/>
-			<button type="submit" class="search-button">search</button>
+			<button type="submit" class="search-button hand-box">search</button>
 		</form>
 
 		{
@@ -61,29 +57,12 @@ const resultTerms = await Promise.all(
 				<p class="search-summary">
 					{results.length === 0
 						? `"${query}" に一致する記事はありません`
-						: `"${query}" — ${results.length} ${results.length === 1 ? "entry" : "entries"}`}
+						: `"${query}" — ${results.length} entries`}
 				</p>
 			)
 		}
 
-		{
-			results.length > 0 && (
-				<ul class="feed">
-					{results.map((post, i) => {
-						const terms = resultTerms[i] ?? [];
-						return (
-							<LogEntry
-								title={post.data.title ?? "Untitled"}
-								href={`/posts/${post.id}`}
-								date={getPublishedDate(post)}
-								terms={terms.map((t) => ({ slug: t.slug, label: t.label }))}
-								kind={getPostKind(terms)}
-							/>
-						);
-					})}
-				</ul>
-			)
-		}
+		{results.length > 0 && <NotebookList entries={notebookEntries} />}
 
 		{!query && <p class="search-hint">キーワードを入力してください。</p>}
 	</section>
@@ -91,32 +70,35 @@ const resultTerms = await Promise.all(
 
 <style>
 	.search-page {
-		max-width: 720px;
-		margin: 0 auto;
-		padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 40px) 80px;
+		max-width: 944px;
+		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 56px;
+	}
+
+	.search-page .tape {
+		display: block;
+		width: fit-content;
 	}
 
 	.search-form {
 		display: flex;
 		gap: 10px;
-		margin-bottom: 24px;
+		margin: 20px 0 20px 8px;
 	}
 
 	.search-input {
 		flex: 1;
 		font-size: 15px;
-		font-family: inherit;
-		color: var(--color-text);
-		background: var(--color-panel);
-		border: 1px solid var(--color-line);
-		border-radius: var(--radius-lg);
-		padding: 11px 14px;
+		font-family: var(--font-hand);
+		color: var(--color-ink);
+		background: var(--color-paper);
+		border: 1.5px solid var(--color-rule);
+		padding: 10px 14px;
 		transition: border-color var(--transition-base);
 	}
 
 	.search-input:focus {
 		outline: none;
-		border-color: var(--color-accent);
+		border-color: var(--color-red);
 	}
 
 	.search-input::placeholder {
@@ -124,31 +106,30 @@ const resultTerms = await Promise.all(
 	}
 
 	.search-button {
-		font-family: var(--font-mono);
+		font-family: var(--font-hand);
 		font-size: 13px;
-		color: var(--color-accent-ink);
-		background: var(--color-panel);
-		border: 1px solid var(--color-line);
-		border-radius: var(--radius-lg);
+		color: var(--color-ink);
+		background: var(--color-paper);
+		border: 1.5px solid var(--color-rule);
 		padding: 0 18px;
 		cursor: pointer;
 		transition: border-color var(--transition-base);
 	}
 
 	.search-button:hover {
-		border-color: var(--color-accent);
+		border-color: var(--color-red);
+		color: var(--color-red);
 	}
 
 	.search-summary {
-		font-family: var(--font-mono);
-		font-size: 13px;
+		font-size: 12.5px;
 		color: var(--color-muted);
-		margin: 0 0 18px;
+		margin: 0 0 8px 8px;
 	}
 
 	.search-hint {
 		color: var(--color-muted);
 		font-size: 14px;
-		margin: 0;
+		margin: 0 0 0 8px;
 	}
 </style>
