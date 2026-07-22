@@ -9,20 +9,17 @@ npx emdash types      # Regenerate TypeScript types from schema
 
 The admin UI is at `http://localhost:4321/_emdash/admin`.
 
-## Architecture: Static Delivery
+## Architecture: Single SSR Worker
 
-The public site (`blog.ochanu.co`) is **static** — an assets-only Worker (`wrangler.static.jsonc`, name `ochanuco-blog-static`). The EmDash SSR Worker (`wrangler.jsonc`) serves only `admin.blog.ochanu.co` (admin UI + generation origin; D1/R2 live behind it).
+The whole site (`blog.ochanu.co`) — public pages and the admin UI — is served by one EmDash SSR Worker (`wrangler.jsonc`, name `ochanuco-blog`), with D1/R2 behind it. This is the standard Astro + EmDash setup.
 
 ```bash
-pnpm generate:static   # Crawl ORIGIN (default admin.blog.ochanu.co) into dist-static/ + build Pagefind index
-pnpm deploy:static     # Deploy dist-static/ as the public static worker
+pnpm build && pnpm deploy   # Build and deploy the worker
 ```
 
-`.github/workflows/generate-static.yml` runs generate+deploy daily (05:00 JST) and on manual dispatch; requires the `CLOUDFLARE_API_TOKEN` repo secret.
+Search is EmDash's `LiveSearch` (`emdash/ui/search`) on `/search`, backed by the worker's search API at request time.
 
-Search is client-side Pagefind on `/search` — it only works on the generated static site (the `/pagefind/` bundle does not exist on the SSR worker). Do not reintroduce request-time features (live search, forms, comments) on public pages; they break when frozen.
-
-Passkeys: `astro.config.mjs` pins the WebAuthn RP ID to `blog.ochanu.co` via `siteUrl` + `allowedOrigins` (apex + admin subdomain). `patches/emdash@0.27.0.patch` fixes an upstream bug where `allowedOrigins` was dropped from the serialized runtime config — check whether the fix landed upstream before bumping emdash.
+Passkeys: `astro.config.mjs` pins the WebAuthn RP ID to `blog.ochanu.co` via `siteUrl`, so passkeys registered during the former `admin.blog.ochanu.co` era keep working.
 
 ## Key Files
 

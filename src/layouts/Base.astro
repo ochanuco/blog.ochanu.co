@@ -219,8 +219,7 @@ const isLoggedIn = !!Astro.locals.user;
 		</script>
 
 		<script>
-			// JST clock — rendered client-side only, never baked into SSR/static
-			// output, since this site is crawled and frozen for static delivery.
+			// JST clock — rendered client-side so it ticks after page load.
 			const clockEl = document.getElementById("status-clock");
 
 			const CLOCK_PARTS: Intl.DateTimeFormatOptions = {
