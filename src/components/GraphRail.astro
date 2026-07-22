@@ -379,10 +379,11 @@ const graphData = { nodes, edges };
 
 <style>
 	.rail {
-		/* 画面右に固定(スクロールしても動かない) */
+		/* 本文カラム(max-width 720px + 余白)のすぐ右隣に固定。
+		   画面右端ではなく本文基準なので、ワイド画面でも離れない */
 		position: fixed;
 		top: 84px;
-		right: clamp(20px, 3vw, 44px);
+		left: 800px;
 		width: 270px;
 	}
 
