@@ -111,8 +111,9 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 
 <style>
 	.page {
-		max-width: 940px;
-		margin: 0 auto;
+		/* 左寄せ。グラフレールは GraphRail 側で画面右に固定される */
+		max-width: 720px;
+		margin: 0;
 		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 56px;
 	}
 
@@ -207,7 +208,7 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 	/* Empty state */
 	.empty-wrap {
 		max-width: 720px;
-		margin: 0 auto;
+		margin: 0;
 		padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 40px) 80px;
 	}
 
