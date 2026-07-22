@@ -324,8 +324,11 @@ const graphData = { nodes, edges };
 		canvas.addEventListener("pointermove", (ev) => {
 			if (dragNode) {
 				const p = pick(ev.clientX, ev.clientY);
-				dragNode.x = p.x;
-				dragNode.y = p.y;
+				// step() と同じ境界でクランプ(reduced-motion 時は step() が
+				// 走らないため、ここで外に出すと操作不能になる)
+				const mx = dragNode.type === "hub" ? 48 : 30;
+				dragNode.x = Math.max(mx, Math.min(W - mx, p.x));
+				dragNode.y = Math.max(26, Math.min(H - 26, p.y));
 				dragNode.vx = 0;
 				dragNode.vy = 0;
 				if (reduced) draw();
