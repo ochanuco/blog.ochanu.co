@@ -45,7 +45,7 @@ const notebookEntries = results.map((post, i) => ({
 	title={query ? `Search: ${query}` : "Search"}
 	description="Search blog posts"
 >
-	<section class="search-page">
+	<section class="search-page notebook-card">
 		<span class="tape">検 索</span>
 
 		<form method="get" action="/search" class="search-form" role="search">
@@ -79,7 +79,6 @@ const notebookEntries = results.map((post, i) => ({
 <style>
 	.search-page {
 		max-width: 860px;
-		margin: 0;
 		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 56px;
 	}
 

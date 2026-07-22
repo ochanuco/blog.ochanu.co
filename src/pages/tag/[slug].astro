@@ -37,7 +37,7 @@ const notebookEntries = sortedPosts.map((post, i) => ({
 	title={`Posts tagged "${term.label}"`}
 	description={`All posts tagged with ${term.label}`}
 >
-	<div class="archive-page">
+	<div class="archive-page notebook-card">
 		<span class="tape">「{term.label}」の 記 録</span>
 		<p class="meta"><b>{sortedPosts.length} entries</b></p>
 		{
@@ -53,7 +53,6 @@ const notebookEntries = sortedPosts.map((post, i) => ({
 <style>
 	.archive-page {
 		max-width: 860px;
-		margin: 0;
 		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 56px;
 	}
 

@@ -25,7 +25,7 @@ const notebookEntries = sortedPosts.map((post, i) => ({
 ---
 
 <Base title="ログ" description="全記事の一覧">
-	<div class="log-page">
+	<div class="log-page notebook-card">
 		<span class="tape">ロ グ</span>
 		<p class="meta"><b>{posts.length} entries</b></p>
 		{
@@ -41,7 +41,6 @@ const notebookEntries = sortedPosts.map((post, i) => ({
 <style>
 	.log-page {
 		max-width: 860px;
-		margin: 0;
 		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 56px;
 	}
 

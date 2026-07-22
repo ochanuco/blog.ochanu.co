@@ -249,6 +249,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				/* Colors — "engineer's notebook": graph-paper ground, red-pen
 				   accent for year markers, a highlighter-yellow wash for the
 				   latest entry. */
+				--color-desk: #eceae4;
 				--color-paper: #fafbf8;
 				--color-grid: #e3ebf1;
 				--color-rule: #c2d0dc;
@@ -381,6 +382,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			/* Dark mode via system preference (when no explicit class) */
 			@media (prefers-color-scheme: dark) {
 				:root:not(.light) {
+					--color-desk: #141619;
 					--color-paper: #1d2025;
 					--color-grid: rgba(125, 145, 165, 0.13);
 					--color-rule: #3a4450;
@@ -397,6 +399,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 			/* Explicit dark mode */
 			:root.dark {
+				--color-desk: #141619;
 				--color-paper: #1d2025;
 				--color-grid: rgba(125, 145, 165, 0.13);
 				--color-rule: #3a4450;
@@ -422,18 +425,18 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				min-height: 100vh;
 				-webkit-font-smoothing: antialiased;
 				-moz-osx-font-smoothing: grayscale;
-				background:
-					repeating-linear-gradient(
-						to bottom,
-						transparent 0 19px,
-						var(--color-grid) 19px 20px
-					),
-					repeating-linear-gradient(
-						to right,
-						transparent 0 19px,
-						var(--color-grid) 19px 20px
-					),
-					var(--color-paper);
+				/* 外側=机の台紙。方眼はノートカード内の .sheet だけに敷く */
+				background: var(--color-desk);
+			}
+
+			/* ノートカード — 台紙の上に乗る1枚のノート。各ページの
+			   コンテナがこのクラスを付ける */
+			.notebook-card {
+				background: var(--color-paper);
+				border: 1px solid var(--color-rule);
+				border-radius: 14px;
+				box-shadow: 0 10px 32px rgba(0, 0, 0, 0.09);
+				margin: 8px clamp(16px, 3vw, 40px) 48px;
 			}
 
 			a:where(:not([class*="emdash"]):not([class*="ec-"])) {

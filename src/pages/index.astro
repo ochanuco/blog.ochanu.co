@@ -60,7 +60,7 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 <Base title={siteTitle} description={siteTagline}>
 	{
 		posts.length === 0 ? (
-			<div class="empty-wrap">
+			<div class="empty-wrap notebook-card">
 				<span class="tape">作 業 記 録</span>
 				<h1>{siteTitle}</h1>
 				<p class="tagline">{siteTagline}</p>
@@ -73,7 +73,8 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 				</section>
 			</div>
 		) : (
-			<div class="page">
+			<>
+			<div class="page notebook-card">
 				<header class="site-head">
 					<div>
 						<span class="tape">作 業 記 録</span>
@@ -89,10 +90,7 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 					</div>
 				</header>
 
-				<div class="cols">
-					<NotebookList entries={notebookEntries} highlightFirst />
-					<GraphRail posts={graphPosts} cats={categoryTerms} />
-				</div>
+				<NotebookList entries={notebookEntries} highlightFirst />
 
 				<footer class="page-foot">
 					<div class="doodle" aria-hidden="true">
@@ -105,16 +103,19 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 					</div>
 				</footer>
 			</div>
+
+			{/* グラフはノートの外、机の台紙の上に置いたメモ用紙 */}
+			<GraphRail posts={graphPosts} cats={categoryTerms} />
+		</>
 		)
 	}
 </Base>
 
 <style>
 	.page {
-		/* 左寄せ。グラフレールは GraphRail 側で画面右に固定される */
-		max-width: 860px;
-		margin: 0;
-		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 56px;
+		/* ノートカードにはリストだけ。グラフは机の上(カードの外)に置く */
+		max-width: 944px;
+		padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 44px) 48px;
 	}
 
 	.site-head {
@@ -151,17 +152,6 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 	.site-head .meta b {
 		color: var(--color-red);
 		font-weight: 600;
-	}
-
-	.cols {
-		display: flex;
-		gap: 34px;
-		align-items: flex-start;
-	}
-
-	.cols :global(.sheet) {
-		flex: 1;
-		min-width: 0;
 	}
 
 	.page-foot {
@@ -208,7 +198,6 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 	/* Empty state */
 	.empty-wrap {
 		max-width: 720px;
-		margin: 0;
 		padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 40px) 80px;
 	}
 

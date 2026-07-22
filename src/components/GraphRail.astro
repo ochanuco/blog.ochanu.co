@@ -379,12 +379,13 @@ const graphData = { nodes, edges };
 
 <style>
 	.rail {
-		/* 本文カラム(max-width 720px + 余白)のすぐ右隣に固定。
-		   画面右端ではなく本文基準なので、ワイド画面でも離れない */
+		/* ノートカードの外、机の台紙にじかに置いたメモ用紙。
+		   カード(max-width 944px + 余白)の右隣に固定 */
 		position: fixed;
-		top: 84px;
-		left: 940px;
+		top: 96px;
+		left: 1020px;
 		width: 270px;
+		transform: rotate(-0.9deg);
 	}
 
 	.rail canvas {
@@ -394,6 +395,7 @@ const graphData = { nodes, edges };
 		cursor: grab;
 		border: 1.5px solid var(--color-rule);
 		border-radius: 9px 13px 8px 14px / 14px 8px 13px 9px;
+		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
 		touch-action: none;
 	}
 
@@ -419,7 +421,7 @@ const graphData = { nodes, edges };
 		z-index: 5;
 	}
 
-	@media (max-width: 1240px) {
+	@media (max-width: 1320px) {
 		.rail {
 			display: none;
 		}
