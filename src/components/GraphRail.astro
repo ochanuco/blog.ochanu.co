@@ -88,6 +88,14 @@ for (const post of posts) {
 	edges.push([resolvedHubIndex, postIndex]);
 }
 
+// 開いているページに対応するノードは「赤ペンで丸を付けた」印を出す
+const currentPath = Astro.url.pathname.replace(/\/+$/, "") || "/";
+for (const node of nodes) {
+	if (node.href && node.href === currentPath) {
+		(node as GraphNode & { current?: boolean }).current = true;
+	}
+}
+
 const graphData = { nodes, edges };
 ---
 
@@ -133,6 +141,7 @@ const graphData = { nodes, edges };
 			grid: readVar("--color-grid", "#e3ebf1"),
 			ink: readVar("--color-ink", "#2a2c30"),
 			muted: readVar("--color-muted", "#8b95a1"),
+			red: readVar("--color-red", "#d94f43"),
 			font: readVar("--font-hand", "'Klee One', sans-serif"),
 		};
 
@@ -143,6 +152,7 @@ const graphData = { nodes, edges };
 				grid: readVar("--color-grid", "#e3ebf1"),
 				ink: readVar("--color-ink", "#2a2c30"),
 				muted: readVar("--color-muted", "#8b95a1"),
+				red: readVar("--color-red", "#d94f43"),
 				font: readVar("--font-hand", "'Klee One', sans-serif"),
 			};
 			draw();
@@ -274,6 +284,15 @@ const graphData = { nodes, edges };
 			});
 
 			nodes.forEach((n) => {
+				// 開いているページのノードは赤ペンで丸を付ける
+				if (n.current) {
+					ctx.lineWidth = 1.8;
+					ctx.strokeStyle = colors.red;
+					wobblyCircle(n.x, n.y, n.r + 6, n.seed + 11);
+					ctx.stroke();
+					wobblyCircle(n.x, n.y, n.r + 7.5, n.seed + 23);
+					ctx.stroke();
+				}
 				ctx.lineWidth = n.type === "hub" ? 2 : 1.5;
 				ctx.strokeStyle = n.color;
 				ctx.fillStyle = n.type === "hub" ? colors.paper : n.color;
