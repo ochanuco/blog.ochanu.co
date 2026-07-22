@@ -1,0 +1,422 @@
+---
+// Compact "wiring diagram" graph of posts <-> categories, drawn on a
+// <canvas>. SSR precomputes the node/edge list (including each hub's color,
+// via getCategoryColor) and hands it to the client as JSON; the client
+// script owns layout (force simulation), drawing, drag, hover tooltip, and
+// click-to-navigate.
+import { getCategoryColor, UNCATEGORIZED_HUB_COLOR } from "../utils/category-color";
+
+export interface GraphRailPost {
+	slug: string;
+	title: string;
+	catSlug: string | null;
+	catLabel: string | null;
+}
+
+export interface GraphRailCategory {
+	slug: string;
+	label: string;
+}
+
+interface Props {
+	posts: GraphRailPost[];
+	cats: GraphRailCategory[];
+}
+
+const { posts, cats } = Astro.props;
+
+const catLabelBySlug = new Map(cats.map((c) => [c.slug, c.label]));
+
+// Hubs: one per category that actually has at least one post, plus a
+// catch-all "メモ" hub for uncategorized posts (only if any exist).
+const usedCatSlugs = Array.from(
+	new Set(posts.map((p) => p.catSlug).filter((s): s is string => !!s))
+);
+const hasUncategorized = posts.some((p) => !p.catSlug);
+
+type GraphNode = {
+	type: "hub" | "post";
+	label: string;
+	color: string;
+	href: string | null;
+};
+
+const nodes: GraphNode[] = [];
+const edges: Array<[number, number]> = [];
+
+const hubIndexBySlug = new Map<string, number>();
+for (const slug of usedCatSlugs) {
+	hubIndexBySlug.set(slug, nodes.length);
+	nodes.push({
+		type: "hub",
+		label: catLabelBySlug.get(slug) ?? slug,
+		color: getCategoryColor(slug),
+		href: `/category/${slug}`,
+	});
+}
+
+let memoHubIndex = -1;
+if (hasUncategorized) {
+	memoHubIndex = nodes.length;
+	nodes.push({
+		type: "hub",
+		label: "メモ",
+		color: UNCATEGORIZED_HUB_COLOR,
+		href: null,
+	});
+}
+
+for (const post of posts) {
+	const hubIndex = post.catSlug ? hubIndexBySlug.get(post.catSlug) : undefined;
+	const resolvedHubIndex = hubIndex ?? memoHubIndex;
+	if (resolvedHubIndex === undefined || resolvedHubIndex < 0) continue;
+	const postIndex = nodes.length;
+	nodes.push({
+		type: "post",
+		label: post.title,
+		color: nodes[resolvedHubIndex].color,
+		href: `/posts/${post.slug}`,
+	});
+	edges.push([resolvedHubIndex, postIndex]);
+}
+
+const graphData = { nodes, edges };
+---
+
+{
+	nodes.length > 0 && (
+		<aside class="rail">
+			<canvas id="graph-rail" role="img" aria-label="記事のつながりグラフ" />
+			<div class="graph-tooltip" id="graph-tooltip" hidden />
+			<p class="cap">記事のつながり(ドラッグ可・クリックで記事へ)</p>
+		</aside>
+	)
+}
+
+<script define:vars={{ graphData }}>
+	(function () {
+		const canvas = document.getElementById("graph-rail");
+		if (!canvas || !(canvas instanceof HTMLCanvasElement)) return;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return;
+		const tooltip = document.getElementById("graph-tooltip");
+		const rail = canvas.closest(".rail");
+
+		const nodes = graphData.nodes.map((n, i) => ({
+			...n,
+			r: n.type === "hub" ? 15 : 5,
+			x: 0,
+			y: 0,
+			vx: 0,
+			vy: 0,
+			seed: i * 3.7 + (n.type === "hub" ? 0 : 40),
+		}));
+		const edges = graphData.edges;
+
+		function readVar(name, fallback) {
+			const v = getComputedStyle(document.documentElement)
+				.getPropertyValue(name)
+				.trim();
+			return v || fallback;
+		}
+
+		let colors = {
+			paper: readVar("--color-paper", "#fafbf8"),
+			grid: readVar("--color-grid", "#e3ebf1"),
+			ink: readVar("--color-ink", "#2a2c30"),
+			muted: readVar("--color-muted", "#8b95a1"),
+			font: readVar("--font-hand", "'Klee One', sans-serif"),
+		};
+
+		// Re-read the palette whenever the theme toggle flips the root class.
+		const themeObserver = new MutationObserver(() => {
+			colors = {
+				paper: readVar("--color-paper", "#fafbf8"),
+				grid: readVar("--color-grid", "#e3ebf1"),
+				ink: readVar("--color-ink", "#2a2c30"),
+				muted: readVar("--color-muted", "#8b95a1"),
+				font: readVar("--font-hand", "'Klee One', sans-serif"),
+			};
+			draw();
+		});
+		themeObserver.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["class"],
+		});
+
+		let W = 0,
+			H = 0;
+
+		function resize() {
+			const dpr = window.devicePixelRatio || 1;
+			W = canvas.clientWidth;
+			H = canvas.clientHeight;
+			canvas.width = W * dpr;
+			canvas.height = H * dpr;
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		}
+		resize();
+		window.addEventListener("resize", () => {
+			resize();
+			draw();
+		});
+
+		const hubs = nodes.filter((n) => n.type === "hub");
+		hubs.forEach((n, i) => {
+			const a = (i / Math.max(hubs.length, 1)) * Math.PI * 2 - 0.6;
+			n.x = W / 2 + Math.cos(a) * Math.min(W, H) * 0.26;
+			n.y = H / 2 + Math.sin(a) * Math.min(W, H) * 0.26;
+		});
+		nodes.forEach((n, i) => {
+			if (n.type !== "post") return;
+			const edge = edges.find((e) => e[1] === i);
+			const hub = edge ? nodes[edge[0]] : null;
+			if (!hub) return;
+			n.x = hub.x + Math.cos(n.seed) * 32;
+			n.y = hub.y + Math.sin(n.seed) * 32;
+		});
+
+		let dragNode = null;
+
+		function step() {
+			for (let i = 0; i < nodes.length; i++) {
+				const a = nodes[i];
+				for (let j = i + 1; j < nodes.length; j++) {
+					const b = nodes[j];
+					let dx = a.x - b.x,
+						dy = a.y - b.y;
+					const d2 = dx * dx + dy * dy || 1;
+					const d = Math.sqrt(d2);
+					const rep = 750 / d2;
+					dx /= d;
+					dy /= d;
+					a.vx += dx * rep;
+					a.vy += dy * rep;
+					b.vx -= dx * rep;
+					b.vy -= dy * rep;
+				}
+			}
+			edges.forEach(([i, j]) => {
+				const a = nodes[i],
+					b = nodes[j];
+				const dx = b.x - a.x,
+					dy = b.y - a.y;
+				const d = Math.sqrt(dx * dx + dy * dy) || 1;
+				const f = (d - 50) * 0.012;
+				a.vx += (dx / d) * f;
+				a.vy += (dy / d) * f;
+				b.vx -= (dx / d) * f;
+				b.vy -= (dy / d) * f;
+			});
+			nodes.forEach((n) => {
+				if (n === dragNode) return;
+				n.vx += (W / 2 - n.x) * 0.0012;
+				n.vy += (H / 2 - n.y) * 0.0012;
+				n.vx *= 0.86;
+				n.vy *= 0.86;
+				n.x += n.vx;
+				n.y += n.vy;
+				// ハブはラベルが円からはみ出すぶん、左右の余白を広めに取る
+				const mx = n.hub ? 48 : 30;
+				n.x = Math.max(mx, Math.min(W - mx, n.x));
+				n.y = Math.max(26, Math.min(H - 26, n.y));
+			});
+		}
+
+		function wobblyCircle(x, y, r, seed) {
+			ctx.beginPath();
+			for (let k = 0; k <= 20; k++) {
+				const a = (k / 20) * Math.PI * 2;
+				const w = 1 + Math.sin(a * 3 + seed) * 0.055;
+				const px = x + Math.cos(a) * r * w;
+				const py = y + Math.sin(a) * r * w;
+				k === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+			}
+			ctx.closePath();
+		}
+
+		function draw() {
+			ctx.clearRect(0, 0, W, H);
+			ctx.fillStyle = colors.paper;
+			ctx.fillRect(0, 0, W, H);
+			ctx.strokeStyle = colors.grid;
+			ctx.lineWidth = 1;
+			ctx.beginPath();
+			for (let x = 0.5; x < W; x += 20) {
+				ctx.moveTo(x, 0);
+				ctx.lineTo(x, H);
+			}
+			for (let y = 0.5; y < H; y += 20) {
+				ctx.moveTo(0, y);
+				ctx.lineTo(W, y);
+			}
+			ctx.stroke();
+
+			ctx.strokeStyle = "rgba(140, 150, 160, 0.45)";
+			ctx.lineWidth = 1.2;
+			edges.forEach(([i, j]) => {
+				const a = nodes[i],
+					b = nodes[j];
+				ctx.beginPath();
+				ctx.moveTo(a.x, a.y);
+				const mx = (a.x + b.x) / 2 + Math.sin(a.seed + b.seed) * 8;
+				const my = (a.y + b.y) / 2 + Math.cos(a.seed - b.seed) * 8;
+				ctx.quadraticCurveTo(mx, my, b.x, b.y);
+				ctx.stroke();
+			});
+
+			nodes.forEach((n) => {
+				ctx.lineWidth = n.type === "hub" ? 2 : 1.5;
+				ctx.strokeStyle = n.color;
+				ctx.fillStyle = n.type === "hub" ? colors.paper : n.color;
+				wobblyCircle(n.x, n.y, n.r, n.seed);
+				if (n.type === "hub") {
+					ctx.fill();
+					ctx.stroke();
+				} else {
+					ctx.globalAlpha = 0.85;
+					ctx.fill();
+					ctx.globalAlpha = 1;
+				}
+				if (n.type === "hub") {
+					ctx.fillStyle = n.color;
+					ctx.font = `600 11px ${colors.font}`;
+					ctx.textAlign = "center";
+					ctx.fillText(n.label, n.x, n.y + 4);
+				}
+			});
+		}
+
+		function pick(clientX, clientY) {
+			const rect = canvas.getBoundingClientRect();
+			const x = clientX - rect.left;
+			const y = clientY - rect.top;
+			return {
+				x,
+				y,
+				node: nodes.find((n) => (n.x - x) ** 2 + (n.y - y) ** 2 < (n.r + 10) ** 2),
+			};
+		}
+
+		let downX = 0;
+		let downY = 0;
+		let downNode = null;
+
+		canvas.addEventListener("pointerdown", (ev) => {
+			const p = pick(ev.clientX, ev.clientY);
+			downX = ev.clientX;
+			downY = ev.clientY;
+			downNode = p.node ?? null;
+			if (p.node) {
+				dragNode = p.node;
+				canvas.setPointerCapture(ev.pointerId);
+				canvas.style.cursor = "grabbing";
+			}
+		});
+
+		canvas.addEventListener("pointermove", (ev) => {
+			if (dragNode) {
+				const p = pick(ev.clientX, ev.clientY);
+				dragNode.x = p.x;
+				dragNode.y = p.y;
+				dragNode.vx = 0;
+				dragNode.vy = 0;
+				if (reduced) draw();
+				return;
+			}
+			const p = pick(ev.clientX, ev.clientY);
+			if (p.node) {
+				canvas.style.cursor = "pointer";
+				if (tooltip) {
+					tooltip.hidden = false;
+					tooltip.textContent =
+						p.node.type === "hub" ? p.node.label : p.node.label;
+					const railRect = rail
+						? rail.getBoundingClientRect()
+						: canvas.getBoundingClientRect();
+					const rect = canvas.getBoundingClientRect();
+					tooltip.style.left = `${rect.left - railRect.left + p.x}px`;
+					tooltip.style.top = `${rect.top - railRect.top + p.y - p.node.r - 10}px`;
+				}
+			} else {
+				canvas.style.cursor = "grab";
+				if (tooltip) tooltip.hidden = true;
+			}
+		});
+
+		canvas.addEventListener("pointerleave", () => {
+			if (tooltip) tooltip.hidden = true;
+		});
+
+		canvas.addEventListener("pointerup", (ev) => {
+			const moved = Math.hypot(ev.clientX - downX, ev.clientY - downY);
+			if (moved < 5 && downNode && downNode.href) {
+				window.location.assign(downNode.href);
+			}
+			dragNode = null;
+			downNode = null;
+			canvas.style.cursor = "grab";
+		});
+
+		const reduced = window.matchMedia(
+			"(prefers-reduced-motion: reduce)"
+		).matches;
+		if (reduced) {
+			for (let i = 0; i < 400; i++) step();
+			draw();
+		} else {
+			(function loop() {
+				step();
+				draw();
+				requestAnimationFrame(loop);
+			})();
+		}
+	})();
+</script>
+
+<style>
+	.rail {
+		flex: none;
+		width: 270px;
+		position: sticky;
+		top: 20px;
+	}
+
+	.rail canvas {
+		display: block;
+		width: 100%;
+		height: 330px;
+		cursor: grab;
+		border: 1.5px solid var(--color-rule);
+		border-radius: 9px 13px 8px 14px / 14px 8px 13px 9px;
+		touch-action: none;
+	}
+
+	.rail .cap {
+		font-size: 11.5px;
+		color: var(--color-muted);
+		text-align: center;
+		margin: 8px 0 0;
+	}
+
+	.graph-tooltip {
+		position: absolute;
+		transform: translate(-50%, -100%);
+		background: var(--color-paper);
+		border: 1px solid var(--color-rule);
+		border-radius: 6px;
+		padding: 3px 9px;
+		font-size: 11.5px;
+		color: var(--color-ink);
+		white-space: nowrap;
+		pointer-events: none;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+		z-index: 5;
+	}
+
+	@media (max-width: 800px) {
+		.rail {
+			display: none;
+		}
+	}
+</style>
