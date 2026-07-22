@@ -8,6 +8,7 @@ import {
 } from "emdash/ui";
 import { createPublicPageContext } from "emdash/page";
 import "../styles/theme.css";
+import GraphRail from "../components/GraphRail.astro";
 import { FALLBACK_SITE_TITLE } from "../constants/site";
 
 interface Props {
@@ -135,6 +136,9 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 		<main>
 			<slot />
 		</main>
+
+		{/* 机の上のメモ用紙(記事グラフ)。全ページ共通 */}
+		<GraphRail />
 
 		<footer class="foot">
 			<WidgetArea name="footer" />

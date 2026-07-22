@@ -1,19 +1,12 @@
 ---
-import {
-	getEmDashCollection,
-	getEntryTerms,
-	getSiteSettings,
-	getTaxonomyTerms,
-} from "emdash";
+import { getEmDashCollection, getEntryTerms, getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
 import NotebookList from "../components/NotebookList.astro";
-import GraphRail from "../components/GraphRail.astro";
 import { comparePublishedDateDesc, getPublishedDate } from "../utils/post-date";
 import { FALLBACK_SITE_TITLE, FALLBACK_SITE_TAGLINE } from "../constants/site";
 
 const { entries: posts, cacheHint } = await getEmDashCollection("posts");
 const settings = await getSiteSettings();
-const categoryTerms = await getTaxonomyTerms("category");
 
 Astro.cache.set(cacheHint);
 
@@ -34,16 +27,6 @@ const notebookEntries = sortedPosts.map((post, i) => ({
 	date: getPublishedDate(post),
 	terms: (postsTerms[i] ?? []).map((t) => ({ slug: t.slug, label: t.label })),
 }));
-
-const graphPosts = sortedPosts.map((post, i) => {
-	const primaryTerm = (postsTerms[i] ?? [])[0];
-	return {
-		slug: post.id,
-		title: post.data.title ?? "Untitled",
-		catSlug: primaryTerm?.slug ?? null,
-		catLabel: primaryTerm?.label ?? null,
-	};
-});
 
 const JST_YEAR: Intl.DateTimeFormatOptions = {
 	timeZone: "Asia/Tokyo",
@@ -103,9 +86,6 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 					</div>
 				</footer>
 			</div>
-
-			{/* グラフはノートの外、机の台紙の上に置いたメモ用紙 */}
-			<GraphRail posts={graphPosts} cats={categoryTerms} />
 		</>
 		)
 	}

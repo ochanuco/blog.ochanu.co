@@ -4,26 +4,34 @@
 // via getCategoryColor) and hands it to the client as JSON; the client
 // script owns layout (force simulation), drawing, drag, hover tooltip, and
 // click-to-navigate.
+import { getEmDashCollection, getEntryTerms, getTaxonomyTerms } from "emdash";
 import { getCategoryColor, UNCATEGORIZED_HUB_COLOR } from "../utils/category-color";
+import { comparePublishedDateDesc } from "../utils/post-date";
 
-export interface GraphRailPost {
+interface GraphRailPost {
 	slug: string;
 	title: string;
 	catSlug: string | null;
 	catLabel: string | null;
 }
 
-export interface GraphRailCategory {
-	slug: string;
-	label: string;
-}
-
-interface Props {
-	posts: GraphRailPost[];
-	cats: GraphRailCategory[];
-}
-
-const { posts, cats } = Astro.props;
+// データは自給する(Base 経由で全ページに置くため)。キャッシュヒントは
+// 各ページが自分のクエリぶんを設定する方針のままにしておく。
+const { entries: allPosts } = await getEmDashCollection("posts");
+const cats = await getTaxonomyTerms("category");
+const sortedPosts = allPosts.toSorted(comparePublishedDateDesc);
+const postsTerms = await Promise.all(
+	sortedPosts.map((post) => getEntryTerms("posts", post.data.id, "category"))
+);
+const posts: GraphRailPost[] = sortedPosts.map((post, i) => {
+	const primaryTerm = (postsTerms[i] ?? [])[0];
+	return {
+		slug: post.id,
+		title: post.data.title ?? "Untitled",
+		catSlug: primaryTerm?.slug ?? null,
+		catLabel: primaryTerm?.label ?? null,
+	};
+});
 
 const catLabelBySlug = new Map(cats.map((c) => [c.slug, c.label]));
 
