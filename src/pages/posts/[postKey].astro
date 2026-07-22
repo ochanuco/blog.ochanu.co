@@ -1,14 +1,14 @@
 ---
 import {
 	getEmDashEntry,
-	getEmDashCollection,
 	getEntryTerms,
 	getSeoMeta,
 	getSiteSettings,
 } from "emdash";
 import { Image, PortableText } from "emdash/ui";
 import Base from "../../layouts/Base.astro";
-import { comparePublishedDateDesc, getPublishedDate } from "../../utils/post-date";
+import { getPublishedDate } from "../../utils/post-date";
+import { getPostsSummary } from "../../utils/posts-summary";
 import { getReadingTime } from "../../utils/reading-time";
 
 const { postKey } = Astro.params;
@@ -86,9 +86,9 @@ const marginDate = publishedAt
 // neighbors in that ordering. p.1 is the newest post; "次のページ" walks
 // toward older posts (higher page number), "前のページ" walks back toward
 // the newest (lower page number, p.1).
-const { entries: allPosts } = await getEmDashCollection("posts");
-const sortedAll = allPosts.toSorted(comparePublishedDateDesc);
-const currentIndex = sortedAll.findIndex((p) => p.id === post.id);
+// 全件クエリは共有ストア(短命キャッシュ)から。
+const { posts: sortedAll } = await getPostsSummary();
+const currentIndex = sortedAll.findIndex((p) => p.slug === post.id);
 const pageNumber = currentIndex >= 0 ? currentIndex + 1 : null;
 const newerPost = currentIndex > 0 ? sortedAll[currentIndex - 1] : null;
 const olderPost =
@@ -166,7 +166,7 @@ const olderPost =
 		<nav class="entry-nav" aria-label="前後の記事">
 			<a
 				class:list={["entry-nav-link", "prev", !newerPost && "is-disabled"]}
-				href={newerPost ? `/posts/${newerPost.id}` : undefined}
+				href={newerPost ? `/posts/${newerPost.slug}` : undefined}
 				aria-disabled={!newerPost}
 			>
 				← 前のページ
@@ -174,7 +174,7 @@ const olderPost =
 			{pageNumber && <span class="entry-page-no">p.{pageNumber}</span>}
 			<a
 				class:list={["entry-nav-link", "next", !olderPost && "is-disabled"]}
-				href={olderPost ? `/posts/${olderPost.id}` : undefined}
+				href={olderPost ? `/posts/${olderPost.slug}` : undefined}
 				aria-disabled={!olderPost}
 			>
 				次のページ →

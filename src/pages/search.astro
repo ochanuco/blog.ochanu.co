@@ -2,10 +2,11 @@
 // SSR の部分一致検索。EmDash 組み込みの FTS5 検索(LiveSearch)は
 // unicode61 トークナイザのため日本語クエリを取りこぼすので、
 // タイトル・抜粋・本文への substring マッチで検索する。
-import { getEmDashCollection, getEntryTerms } from "emdash";
+import { getEmDashCollection } from "emdash";
 import Base from "../layouts/Base.astro";
 import NotebookList from "../components/NotebookList.astro";
-import { comparePublishedDateDesc, getPublishedDate } from "../utils/post-date";
+import { comparePublishedDateDesc } from "../utils/post-date";
+import { toNotebookEntries } from "../utils/notebook-entries";
 import { extractText } from "../utils/reading-time";
 
 const query = Astro.url.searchParams.get("q")?.trim() || "";
@@ -29,16 +30,7 @@ const results = query
 	? posts.filter((post) => matchesQuery(post, query)).toSorted(comparePublishedDateDesc)
 	: [];
 
-const resultTerms = await Promise.all(
-	results.map((post) => getEntryTerms("posts", post.data.id, "category"))
-);
-
-const notebookEntries = results.map((post, i) => ({
-	slug: post.id,
-	title: post.data.title ?? "Untitled",
-	date: getPublishedDate(post),
-	terms: (resultTerms[i] ?? []).map((t) => ({ slug: t.slug, label: t.label })),
-}));
+const notebookEntries = await toNotebookEntries(results);
 ---
 
 <Base

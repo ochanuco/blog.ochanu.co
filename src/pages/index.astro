@@ -1,7 +1,8 @@
 ---
-import { getEmDashCollection, getEntryTerms, getSiteSettings } from "emdash";
+import { getEmDashCollection, getSiteSettings } from "emdash";
 import Base from "../layouts/Base.astro";
 import NotebookList from "../components/NotebookList.astro";
+import { toNotebookEntries } from "../utils/notebook-entries";
 import { comparePublishedDateDesc, getPublishedDate } from "../utils/post-date";
 import { FALLBACK_SITE_TITLE, FALLBACK_SITE_TAGLINE } from "../constants/site";
 
@@ -15,18 +16,7 @@ const siteTagline = settings.tagline || FALLBACK_SITE_TAGLINE;
 
 const sortedPosts = posts.toSorted(comparePublishedDateDesc);
 
-// Category terms per post, fetched in parallel. `post.data.id` is the DB
-// ULID (required by getEntryTerms) — `post.id` is just the slug.
-const postsTerms = await Promise.all(
-	sortedPosts.map((post) => getEntryTerms("posts", post.data.id, "category"))
-);
-
-const notebookEntries = sortedPosts.map((post, i) => ({
-	slug: post.id,
-	title: post.data.title ?? "Untitled",
-	date: getPublishedDate(post),
-	terms: (postsTerms[i] ?? []).map((t) => ({ slug: t.slug, label: t.label })),
-}));
+const notebookEntries = await toNotebookEntries(sortedPosts);
 
 const JST_YEAR: Intl.DateTimeFormatOptions = {
 	timeZone: "Asia/Tokyo",

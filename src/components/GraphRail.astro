@@ -4,34 +4,12 @@
 // via getCategoryColor) and hands it to the client as JSON; the client
 // script owns layout (force simulation), drawing, drag, hover tooltip, and
 // click-to-navigate.
-import { getEmDashCollection, getEntryTerms, getTaxonomyTerms } from "emdash";
 import { getCategoryColor, UNCATEGORIZED_HUB_COLOR } from "../utils/category-color";
-import { comparePublishedDateDesc } from "../utils/post-date";
+import { getPostsSummary } from "../utils/posts-summary";
 
-interface GraphRailPost {
-	slug: string;
-	title: string;
-	catSlug: string | null;
-	catLabel: string | null;
-}
-
-// データは自給する(Base 経由で全ページに置くため)。キャッシュヒントは
-// 各ページが自分のクエリぶんを設定する方針のままにしておく。
-const { entries: allPosts } = await getEmDashCollection("posts");
-const cats = await getTaxonomyTerms("category");
-const sortedPosts = allPosts.toSorted(comparePublishedDateDesc);
-const postsTerms = await Promise.all(
-	sortedPosts.map((post) => getEntryTerms("posts", post.data.id, "category"))
-);
-const posts: GraphRailPost[] = sortedPosts.map((post, i) => {
-	const primaryTerm = (postsTerms[i] ?? [])[0];
-	return {
-		slug: post.id,
-		title: post.data.title ?? "Untitled",
-		catSlug: primaryTerm?.slug ?? null,
-		catLabel: primaryTerm?.label ?? null,
-	};
-});
+// Base 経由で全ページに置くため、データは短命キャッシュ付きの
+// 共有ストアから取る(毎リクエストの全件クエリを避ける)。
+const { posts, cats } = await getPostsSummary();
 
 const catLabelBySlug = new Map(cats.map((c) => [c.slug, c.label]));
 
@@ -234,7 +212,7 @@ const graphData = { nodes, edges };
 				n.x += n.vx;
 				n.y += n.vy;
 				// ハブはラベルが円からはみ出すぶん、左右の余白を広めに取る
-				const mx = n.hub ? 48 : 30;
+				const mx = n.type === "hub" ? 48 : 30;
 				n.x = Math.max(mx, Math.min(W - mx, n.x));
 				n.y = Math.max(26, Math.min(H - 26, n.y));
 			});
@@ -394,11 +372,38 @@ const graphData = { nodes, edges };
 			for (let i = 0; i < 400; i++) step();
 			draw();
 		} else {
-			(function loop() {
+			// 収束したら止まり、操作(ドラッグ・リサイズ)で再開するループ。
+			// media query 非表示(clientWidth === 0)の間も回さない。
+			let running = false;
+			let idleFrames = 0;
+			function loop() {
+				if (canvas.clientWidth === 0) {
+					running = false;
+					return;
+				}
 				step();
 				draw();
+				const maxV = nodes.reduce(
+					(m, n) => Math.max(m, Math.abs(n.vx) + Math.abs(n.vy)),
+					0
+				);
+				idleFrames = dragNode || maxV > 0.05 ? 0 : idleFrames + 1;
+				if (idleFrames > 90) {
+					running = false;
+					return;
+				}
 				requestAnimationFrame(loop);
-			})();
+			}
+			function wake() {
+				idleFrames = 0;
+				if (!running) {
+					running = true;
+					requestAnimationFrame(loop);
+				}
+			}
+			wake();
+			canvas.addEventListener("pointerdown", wake);
+			window.addEventListener("resize", wake);
 		}
 	})();
 </script>

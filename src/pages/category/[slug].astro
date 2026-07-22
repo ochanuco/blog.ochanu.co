@@ -2,7 +2,8 @@
 import { getTerm, getEmDashCollection } from "emdash";
 import Base from "../../layouts/Base.astro";
 import NotebookList from "../../components/NotebookList.astro";
-import { comparePublishedDateDesc, getPublishedDate } from "../../utils/post-date";
+import { comparePublishedDateDesc } from "../../utils/post-date";
+import { toNotebookEntries } from "../../utils/notebook-entries";
 
 const { slug } = Astro.params;
 const term = slug ? await getTerm("category", slug) : null;
@@ -19,14 +20,11 @@ Astro.cache.set(cacheHint);
 
 const sortedPosts = posts.toSorted(comparePublishedDateDesc);
 
-const notebookEntries = sortedPosts.map((post) => ({
-	slug: post.id,
-	title: post.data.title ?? "Untitled",
-	date: getPublishedDate(post),
-	// The category is already named in the page's tape/heading, so it isn't
-	// repeated per-row here.
-	terms: [] as Array<{ slug: string; label: string }>,
-}));
+// The category is already named in the page's tape/heading, so per-row
+// terms are suppressed (withTerms: false).
+const notebookEntries = await toNotebookEntries(sortedPosts, {
+	withTerms: false,
+});
 ---
 
 <Base title={`${term.label} posts`} description={`All posts in ${term.label}`}>

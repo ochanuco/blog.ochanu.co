@@ -1,8 +1,9 @@
 ---
-import { getEmDashCollection, getEntryTerms } from "emdash";
+import { getEmDashCollection } from "emdash";
 import Base from "../../layouts/Base.astro";
 import NotebookList from "../../components/NotebookList.astro";
-import { comparePublishedDateDesc, getPublishedDate } from "../../utils/post-date";
+import { comparePublishedDateDesc } from "../../utils/post-date";
+import { toNotebookEntries } from "../../utils/notebook-entries";
 
 const { entries: posts, cacheHint } = await getEmDashCollection("posts");
 
@@ -10,18 +11,7 @@ Astro.cache.set(cacheHint);
 
 const sortedPosts = posts.toSorted(comparePublishedDateDesc);
 
-// Category terms per post, fetched in parallel. `post.data.id` is the DB
-// ULID (required by getEntryTerms) — `post.id` is just the slug.
-const postsTerms = await Promise.all(
-	sortedPosts.map((post) => getEntryTerms("posts", post.data.id, "category"))
-);
-
-const notebookEntries = sortedPosts.map((post, i) => ({
-	slug: post.id,
-	title: post.data.title ?? "Untitled",
-	date: getPublishedDate(post),
-	terms: (postsTerms[i] ?? []).map((t) => ({ slug: t.slug, label: t.label })),
-}));
+const notebookEntries = await toNotebookEntries(sortedPosts);
 ---
 
 <Base title="ログ" description="全記事の一覧">
