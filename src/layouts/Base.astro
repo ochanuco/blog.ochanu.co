@@ -439,6 +439,70 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				white-space: nowrap;
 			}
 
+			/* ノート表題部(全ページ共通): 右上の記入欄と、
+			   コンテンツ直前の「太実線+ドット太罫」の区切り */
+			.note-head {
+				display: flex;
+				align-items: stretch;
+				justify-content: space-between;
+				gap: 16px;
+			}
+
+			/* テープや見出しは欄の下端(太罫の上)に揃える */
+			.note-head .tape,
+			.note-head .note-title {
+				align-self: flex-end;
+				margin-bottom: 0;
+			}
+
+			.note-head + .note-rule {
+				margin-top: 10px;
+			}
+
+			.note-fields {
+				display: flex;
+				flex-direction: column;
+				align-items: flex-end;
+				gap: 4px;
+				margin-left: auto;
+			}
+
+			.note-field {
+				display: flex;
+				align-items: baseline;
+				gap: 8px;
+				width: 190px;
+				margin: 0;
+				padding-bottom: 2px;
+				border-bottom: 1px solid var(--color-rule);
+			}
+
+			.note-field .k {
+				font-size: 11px;
+				color: var(--color-muted);
+				letter-spacing: 0.08em;
+			}
+
+			.note-field .v {
+				font-size: 13.5px;
+				font-weight: 700;
+				color: var(--color-red);
+				font-variant-numeric: tabular-nums;
+			}
+
+			.note-rule {
+				border-top: 2px solid var(--color-rule);
+				/* border-box なので border 2px + 描画領域 6px */
+				height: 8px;
+				background-image: radial-gradient(
+					circle at 10px 4px,
+					var(--color-rule) 1.3px,
+					transparent 1.6px
+				);
+				background-size: 20px 6px;
+				background-repeat: repeat-x;
+			}
+
 			/* ノートカード — 台紙の上に乗る1枚のノート。各ページの
 			   コンテナがこのクラスを付ける */
 			.notebook-card {
@@ -521,9 +585,6 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				--pitch: 32px;
 			}
 
-			.sheet {
-				border-top: 1.5px solid var(--color-rule);
-			}
 
 			.row {
 				display: flex;

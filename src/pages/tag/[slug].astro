@@ -28,8 +28,16 @@ const notebookEntries = await toNotebookEntries(sortedPosts);
 	description={`All posts tagged with ${term.label}`}
 >
 	<div class="archive-page notebook-card">
-		<span class="tape">「{term.label}」の 記 録</span>
-		<p class="meta"><b>{sortedPosts.length} entries</b></p>
+		<header class="note-head">
+			<span class="tape">「{term.label}」の 記 録</span>
+			<div class="note-fields">
+				<p class="note-field">
+					<span class="k">Entries</span>
+					<span class="v">{sortedPosts.length}</span>
+				</p>
+			</div>
+		</header>
+		<div class="note-rule head-rule" aria-hidden="true" />
 		{
 			sortedPosts.length === 0 ? (
 				<p class="empty">No posts with this tag yet.</p>
@@ -43,7 +51,7 @@ const notebookEntries = await toNotebookEntries(sortedPosts);
 <style>
 	.archive-page {
 		max-width: 944px;
-		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 56px;
+		padding: 24px clamp(16px, 4vw, 36px) 56px;
 	}
 
 	.archive-page .tape {
@@ -51,17 +59,6 @@ const notebookEntries = await toNotebookEntries(sortedPosts);
 		width: fit-content;
 	}
 
-	.meta {
-		margin: 0 0 20px 8px;
-		font-size: 12px;
-		color: var(--color-muted);
-		font-variant-numeric: tabular-nums;
-	}
-
-	.meta b {
-		color: var(--color-red);
-		font-weight: 600;
-	}
 
 	.empty {
 		color: var(--color-muted);

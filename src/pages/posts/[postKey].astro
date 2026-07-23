@@ -110,10 +110,13 @@ const olderPost =
 >
 	<article class="entry-page notebook-card">
 		<header class="entry-head">
-			{/* キャンパスノートの表題部: 右上に Date / Tag 欄 */}
-			<div class="entry-fields">
+			{/* キャンパスノートの表題部: タイトルは左下(太罫の上)、
+			    右上に Date / Tag 欄 */}
+			<div class="entry-head-row">
+			<h1 class="entry-title" {...post.edit.title}>{post.data.title}</h1>
+			<div class="note-fields">
 				{marginDate && (
-					<p class="field">
+					<p class="note-field">
 						<span class="k">Date</span>
 						<time class="v" datetime={publishedAt?.toISOString()}>
 							{marginDate.replaceAll(".", " . ")}
@@ -121,19 +124,19 @@ const olderPost =
 					</p>
 				)}
 				{primaryCategory && (
-					<p class="field">
+					<p class="note-field">
 						<span class="k">Tag</span>
 						<span class="v">{primaryCategory.label}</span>
 					</p>
 				)}
-				<p class="entry-sub">
-					{readingTime} min
-					{bylines.length > 0 &&
-						` ・ ${bylines.map((c) => c.byline.displayName).join("、")}`}
-				</p>
+				{bylines.length > 0 && (
+					<p class="entry-sub">
+						{bylines.map((c) => c.byline.displayName).join("、")}
+					</p>
+				)}
 			</div>
-			<h1 class="entry-title" {...post.edit.title}>{post.data.title}</h1>
-			<div class="entry-title-rule" aria-hidden="true" />
+			</div>
+			<div class="note-rule" aria-hidden="true" />
 		</header>
 
 		{
@@ -183,70 +186,46 @@ const olderPost =
 <style>
 	.entry-page {
 		max-width: 944px;
-		padding: clamp(24px, 4vw, 44px) clamp(16px, 4vw, 36px) 64px;
+		padding: 24px clamp(16px, 4vw, 36px) 64px;
 	}
 
 	.entry-head {
-		margin-bottom: 40px;
+		margin-bottom: 28px;
 	}
 
-	/* ノートの表題部: 右上の No. / Date 記入欄 */
-	.entry-fields {
+	.entry-head-row {
 		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 8px;
-		margin-bottom: 26px;
+		align-items: stretch;
+		gap: 24px;
 	}
 
-	.field {
-		display: flex;
-		align-items: baseline;
-		gap: 12px;
-		width: 250px;
-		margin: 0;
-		padding-bottom: 3px;
-		border-bottom: 1.5px solid var(--color-rule);
+	.entry-head-row .entry-title {
+		flex: 1;
+		min-width: 0;
+		align-self: flex-end;
 	}
 
-	.field .k {
-		font-size: 13px;
-		color: var(--color-muted);
-		letter-spacing: 0.06em;
-	}
-
-	.field .v {
-		font-size: 16px;
-		font-weight: 700;
-		color: var(--color-red);
-		font-variant-numeric: tabular-nums;
+	.entry-head :global(.note-fields) {
+		flex: none;
+		align-self: flex-start;
+		padding-top: 2px;
 	}
 
 	.entry-sub {
-		margin: 2px 0 0;
-		font-size: 12.5px;
+		margin: 1px 0 0;
+		font-size: 12px;
 		color: var(--color-muted);
 	}
 
 	.entry-title {
-		font-size: clamp(24px, 4.5vw, 34px);
+		font-size: clamp(22px, 3.5vw, 28px);
 		font-weight: 700;
 		line-height: 1.4;
-		margin: 0 0 10px;
+		margin: 0;
 	}
 
-	/* タイトル行: 下に太い実線、その下にドット入りの太罫 */
-	.entry-title-rule {
-		margin-top: 14px;
-		border-top: 2px solid var(--color-rule);
-		height: 6px;
-		background-image: radial-gradient(
-			circle at 10px 4px,
-			var(--color-rule) 1.3px,
-			transparent 1.6px
-		);
-		background-size: 20px 6px;
-		background-repeat: repeat-x;
+	.entry-head :global(.note-rule) {
+		margin-top: 10px;
 	}
 
 	.entry-hero {
@@ -348,8 +327,21 @@ const olderPost =
 	}
 
 	@media (max-width: 560px) {
-		.field {
-			width: 200px;
+		.entry-head-row {
+			flex-direction: column-reverse;
+			gap: 12px;
+		}
+
+		.entry-head-row .entry-title {
+			align-self: stretch;
+		}
+
+		.entry-head :global(.note-fields) {
+			align-self: flex-end;
+		}
+
+		.entry-head :global(.note-field) {
+			width: 160px;
 		}
 	}
 </style>

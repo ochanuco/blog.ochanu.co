@@ -47,17 +47,27 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 		) : (
 			<>
 			<div class="page notebook-card">
-				<header class="site-head">
+				<header class="site-head note-head">
 					<h1 class="visually-hidden">{siteTitle}</h1>
 					<span class="tape">作 業 記 録</span>
-					<div class="meta">
-						<b>{posts.length} entries</b>
-						<br />
+					<div class="note-fields">
+						<p class="note-field">
+							<span class="k">Entries</span>
+							<span class="v">{posts.length}</span>
+						</p>
 						{oldestYear && newestYear && (
-							oldestYear === newestYear ? oldestYear : `${oldestYear} – ${newestYear}`
+							<p class="note-field">
+								<span class="k">Year</span>
+								<span class="v">
+									{oldestYear === newestYear
+										? oldestYear
+										: `${oldestYear} – ${newestYear}`}
+								</span>
+							</p>
 						)}
 					</div>
 				</header>
+				<div class="note-rule head-rule" aria-hidden="true" />
 
 				<NotebookList entries={notebookEntries} highlightFirst />
 
@@ -81,29 +91,11 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 	.page {
 		/* ノートカードにはリストだけ。グラフは机の上(カードの外)に置く */
 		max-width: 944px;
-		padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 44px) 48px;
+		padding: 24px clamp(20px, 4vw, 44px) 48px;
 	}
 
 	.site-head {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 20px;
-		padding: 0 0 18px 8px;
-	}
-
-	.site-head .meta {
-		flex: none;
-		text-align: right;
-		font-size: 12px;
-		color: var(--color-muted);
-		line-height: 1.9;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.site-head .meta b {
-		color: var(--color-red);
-		font-weight: 600;
+		padding: 0 0 0 8px;
 	}
 
 	.page-foot {
