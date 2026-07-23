@@ -16,8 +16,16 @@ const notebookEntries = await toNotebookEntries(sortedPosts);
 
 <Base title="ログ" description="全記事の一覧">
 	<div class="log-page notebook-card">
-		<span class="tape">ロ グ</span>
-		<p class="meta"><b>{posts.length} entries</b></p>
+		<header class="note-head">
+			<span class="tape">ロ グ</span>
+			<div class="note-fields">
+				<p class="note-field">
+					<span class="k">Entries</span>
+					<span class="v">{posts.length}</span>
+				</p>
+			</div>
+		</header>
+		<div class="note-rule head-rule" aria-hidden="true" />
 		{
 			sortedPosts.length === 0 ? (
 				<p class="empty">No posts yet.</p>
@@ -39,16 +47,8 @@ const notebookEntries = await toNotebookEntries(sortedPosts);
 		width: fit-content;
 	}
 
-	.meta {
-		margin: 0 0 20px 8px;
-		font-size: 12px;
-		color: var(--color-muted);
-		font-variant-numeric: tabular-nums;
-	}
-
-	.meta b {
-		color: var(--color-red);
-		font-weight: 600;
+	.head-rule {
+		margin: 4px 0 0;
 	}
 
 	.empty {

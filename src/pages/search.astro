@@ -38,7 +38,18 @@ const notebookEntries = await toNotebookEntries(results);
 	description="Search blog posts"
 >
 	<section class="search-page notebook-card">
-		<span class="tape">検 索</span>
+		<header class="note-head">
+			<span class="tape">検 索</span>
+			{query && (
+				<div class="note-fields">
+					<p class="note-field">
+						<span class="k">Hits</span>
+						<span class="v">{results.length}</span>
+					</p>
+				</div>
+			)}
+		</header>
+		<div class="note-rule head-rule" aria-hidden="true" />
 
 		<form method="get" action="/search" class="search-form" role="search">
 			<input

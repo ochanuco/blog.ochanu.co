@@ -29,8 +29,16 @@ const notebookEntries = await toNotebookEntries(sortedPosts, {
 
 <Base title={`${term.label} posts`} description={`All posts in ${term.label}`}>
 	<div class="archive-page notebook-card">
-		<span class="tape">（{term.label}）の 記 録</span>
-		<p class="meta"><b>{sortedPosts.length} entries</b></p>
+		<header class="note-head">
+			<span class="tape">（{term.label}）の 記 録</span>
+			<div class="note-fields">
+				<p class="note-field">
+					<span class="k">Entries</span>
+					<span class="v">{sortedPosts.length}</span>
+				</p>
+			</div>
+		</header>
+		<div class="note-rule head-rule" aria-hidden="true" />
 		{
 			sortedPosts.length === 0 ? (
 				<p class="empty">No posts in this category yet.</p>
@@ -52,16 +60,8 @@ const notebookEntries = await toNotebookEntries(sortedPosts, {
 		width: fit-content;
 	}
 
-	.meta {
-		margin: 0 0 20px 8px;
-		font-size: 12px;
-		color: var(--color-muted);
-		font-variant-numeric: tabular-nums;
-	}
-
-	.meta b {
-		color: var(--color-red);
-		font-weight: 600;
+	.head-rule {
+		margin: 4px 0 0;
 	}
 
 	.empty {
