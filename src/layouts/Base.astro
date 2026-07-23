@@ -562,11 +562,17 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				font-variant-numeric: tabular-nums;
 			}
 
+			/* 年の区切りはマジックで罫線2行を使って書いた見出し */
+			.row.year-row {
+				line-height: calc(var(--pitch, 32px) * 2);
+				min-height: calc(var(--pitch, 32px) * 2);
+			}
+
 			.row .margin.year {
 				color: var(--color-red);
-				font-size: 13px;
-				font-weight: 600;
-				letter-spacing: 0.06em;
+				font-size: 23px;
+				font-weight: 700;
+				letter-spacing: 0.05em;
 			}
 
 			.row .body {
