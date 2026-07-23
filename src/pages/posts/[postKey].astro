@@ -147,7 +147,7 @@ const olderPost =
 			)
 		}
 
-		<div class="entry-content">
+		<div class="entry-content ruled-prose ruled-paper">
 			<PortableText value={post.data.content} />
 		</div>
 
@@ -251,37 +251,8 @@ const olderPost =
 	}
 
 	/* Reading area: paper only, no grid — readability over decoration. */
-	.entry-content {
-		font-size: 16px;
-		line-height: 1.9;
-	}
-
-	.entry-content :global(p) {
-		margin-bottom: 1.5em;
-	}
-
-	.entry-content :global(h2) {
-		font-size: 1.5em;
-		margin-top: 2em;
-		margin-bottom: 0.75em;
-	}
-
-	.entry-content :global(h3) {
-		font-size: 1.25em;
-		margin-top: 1.75em;
-		margin-bottom: 0.5em;
-	}
-
-	.entry-content :global(blockquote) {
-		margin: 2em 0;
-		padding: var(--spacing-4) var(--spacing-6);
-		border-left: 3px solid var(--color-rule);
-		color: var(--color-muted);
-		font-style: italic;
-	}
-
 	.entry-content :global(pre) {
-		margin: 2em 0;
+		margin: 0 0 32px;
 		padding: var(--spacing-5);
 		background: var(--color-grid);
 		border-radius: var(--radius);
@@ -304,23 +275,10 @@ const olderPost =
 		padding: 0;
 	}
 
-	.entry-content :global(ul),
-	.entry-content :global(ol) {
-		margin-bottom: 1.5em;
-		padding-left: 1.5em;
-	}
-
-	.entry-content :global(li) {
-		margin-bottom: 0.5em;
-	}
-
-	.entry-content :global(img) {
-		margin: 2em 0;
-		border-radius: var(--radius-lg);
-	}
 
 	.entry-content :global(hr) {
-		margin: 3em 0;
+		/* 罫線1行ぶんの位置に引く(ピッチの倍数を維持) */
+		margin: calc(var(--pitch, 32px) - 1px) 0 var(--pitch, 32px);
 		border: none;
 		border-top: 1px solid var(--color-rule);
 	}
