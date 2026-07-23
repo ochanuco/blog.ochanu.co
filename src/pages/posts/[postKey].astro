@@ -110,7 +110,10 @@ const olderPost =
 >
 	<article class="entry-page notebook-card">
 		<header class="entry-head">
-			{/* キャンパスノートの表題部: 右上に Date / Tag 欄 */}
+			{/* キャンパスノートの表題部: タイトルは左下(太罫の上)、
+			    右上に Date / Tag 欄 */}
+			<div class="entry-head-row">
+			<h1 class="entry-title" {...post.edit.title}>{post.data.title}</h1>
 			<div class="note-fields">
 				{marginDate && (
 					<p class="note-field">
@@ -132,7 +135,7 @@ const olderPost =
 					</p>
 				)}
 			</div>
-			<h1 class="entry-title" {...post.edit.title}>{post.data.title}</h1>
+			</div>
 			<div class="note-rule" aria-hidden="true" />
 		</header>
 
@@ -190,8 +193,22 @@ const olderPost =
 		margin-bottom: 28px;
 	}
 
+	.entry-head-row {
+		display: flex;
+		align-items: stretch;
+		gap: 24px;
+	}
+
+	.entry-head-row .entry-title {
+		flex: 1;
+		min-width: 0;
+		align-self: flex-end;
+	}
+
 	.entry-head :global(.note-fields) {
-		margin-bottom: 6px;
+		flex: none;
+		align-self: flex-start;
+		padding-top: 2px;
 	}
 
 	.entry-sub {
@@ -310,6 +327,19 @@ const olderPost =
 	}
 
 	@media (max-width: 560px) {
+		.entry-head-row {
+			flex-direction: column-reverse;
+			gap: 12px;
+		}
+
+		.entry-head-row .entry-title {
+			align-self: stretch;
+		}
+
+		.entry-head :global(.note-fields) {
+			align-self: flex-end;
+		}
+
 		.entry-head :global(.note-field) {
 			width: 160px;
 		}
