@@ -118,6 +118,11 @@ const olderPost =
 						</time>
 					)
 				}
+			</div>
+			<div class="entry-title-col">
+				<h1 class="entry-title" {...post.edit.title}>{post.data.title}</h1>
+			</div>
+			<div class="entry-side">
 				{primaryCategory && <p class="entry-cat">（{primaryCategory.label}）</p>}
 				<p class="entry-reading">{readingTime} min</p>
 				{
@@ -132,10 +137,6 @@ const olderPost =
 						</p>
 					)
 				}
-			</div>
-			<div class="entry-title-col">
-				<h1 class="entry-title" {...post.edit.title}>{post.data.title}</h1>
-				{post.data.excerpt && <p class="entry-excerpt">{post.data.excerpt}</p>}
 			</div>
 		</header>
 
@@ -208,9 +209,10 @@ const olderPost =
 
 	.entry-date {
 		display: block;
+		font-size: 17px;
 		font-variant-numeric: tabular-nums;
 		color: var(--color-red);
-		font-weight: 600;
+		font-weight: 700;
 		margin-bottom: 4px;
 	}
 
@@ -232,10 +234,12 @@ const olderPost =
 		margin: 0 0 10px;
 	}
 
-	.entry-excerpt {
-		font-size: 15px;
+	.entry-side {
+		flex: none;
+		align-self: flex-end;
+		text-align: right;
+		font-size: 12.5px;
 		color: var(--color-muted);
-		margin: 0;
 	}
 
 	.entry-hero {
@@ -344,6 +348,14 @@ const olderPost =
 
 		.entry-margin {
 			width: auto;
+			text-align: left;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 4px 12px;
+		}
+
+		.entry-side {
+			align-self: flex-start;
 			text-align: left;
 			display: flex;
 			flex-wrap: wrap;
