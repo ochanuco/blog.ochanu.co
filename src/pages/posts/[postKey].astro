@@ -110,14 +110,8 @@ const olderPost =
 >
 	<article class="entry-page notebook-card">
 		<header class="entry-head">
-			{/* キャンパスノートの表題部: 右上に No. / Date 欄 */}
+			{/* キャンパスノートの表題部: 右上に Date / Tag 欄 */}
 			<div class="entry-fields">
-				{pageNumber && (
-					<p class="field">
-						<span class="k">No.</span>
-						<span class="v">{pageNumber}</span>
-					</p>
-				)}
 				{marginDate && (
 					<p class="field">
 						<span class="k">Date</span>
@@ -126,8 +120,14 @@ const olderPost =
 						</time>
 					</p>
 				)}
+				{primaryCategory && (
+					<p class="field">
+						<span class="k">Tag</span>
+						<span class="v">{primaryCategory.label}</span>
+					</p>
+				)}
 				<p class="entry-sub">
-					{primaryCategory && `（${primaryCategory.label}）`} {readingTime} min
+					{readingTime} min
 					{bylines.length > 0 &&
 						` ・ ${bylines.map((c) => c.byline.displayName).join("、")}`}
 				</p>
@@ -263,7 +263,7 @@ const olderPost =
 
 	/* Reading area: paper only, no grid — readability over decoration. */
 	.entry-content :global(pre) {
-		margin: 0 0 32px;
+		margin: 0 0 var(--pitch, 32px);
 		padding: var(--spacing-5);
 		background: var(--color-grid);
 		border-radius: var(--radius);
