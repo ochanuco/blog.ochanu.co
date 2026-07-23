@@ -562,9 +562,11 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				font-variant-numeric: tabular-nums;
 			}
 
-			/* 年の区切りはマジックで罫線2行を使って書いた見出し */
+			/* 年の区切りはマジックで罫線2行を使って書いた見出し。
+			   文字は下の罫線に乗せる(上の行は余白) */
 			.row.year-row {
-				line-height: calc(var(--pitch, 32px) * 2);
+				line-height: var(--pitch, 32px);
+				padding-top: var(--pitch, 32px);
 				min-height: calc(var(--pitch, 32px) * 2);
 			}
 
@@ -653,7 +655,9 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			.ruled-prose h2,
 			.ruled-prose h3 {
 				color: var(--color-red);
-				line-height: calc(var(--pitch, 32px) * 2);
+				/* 罫線2行ぶんのうち、文字は下の罫線に乗せる */
+				line-height: var(--pitch, 32px);
+				padding-top: var(--pitch, 32px);
 				letter-spacing: 0.04em;
 			}
 
