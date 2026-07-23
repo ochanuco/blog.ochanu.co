@@ -620,7 +620,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 			/* ブロックの下余白は padding で取り、罫線が空行にも続くように
 			   する(margin だと背景が塗られず罫線が途切れる) */
-			.ruled-prose > :is(p, ul, ol, h2, h3, h4, blockquote) {
+			.ruled-prose > :is(p, ul, ol, h1, h2, h3, h4, blockquote) {
 				margin: 0;
 				padding-bottom: var(--pitch, 32px);
 				background-image:
@@ -645,13 +645,14 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				display: none;
 			}
 
-			.ruled-prose :is(h2, h3, h4) {
+			.ruled-prose :is(h1, h2, h3, h4) {
 				font-weight: 700;
 			}
 
 			/* h2/h3 は赤マジックで罫線2行を使って書いた見出し
 			   (一覧の年区切りと同じ文法。はてな由来の記事は h3 が
 			   最上位見出しなので h3 も同格に扱う) */
+			.ruled-prose h1,
 			.ruled-prose h2,
 			.ruled-prose h3 {
 				color: var(--color-red);
@@ -659,6 +660,10 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				line-height: var(--pitch, 32px);
 				padding-top: var(--pitch, 32px);
 				letter-spacing: 0.04em;
+			}
+
+			.ruled-prose h1 {
+				font-size: 27px;
 			}
 
 			.ruled-prose h2 {
