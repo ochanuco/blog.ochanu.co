@@ -34,9 +34,8 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 	{
 		posts.length === 0 ? (
 			<div class="empty-wrap notebook-card">
+				<h1 class="visually-hidden">{siteTitle}</h1>
 				<span class="tape">作 業 記 録</span>
-				<h1>{siteTitle}</h1>
-				<p class="tagline">{siteTagline}</p>
 				<section class="empty-state">
 					<h2>No posts yet</h2>
 					<p>Create your first post in the admin panel.</p>
@@ -49,11 +48,8 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 			<>
 			<div class="page notebook-card">
 				<header class="site-head">
-					<div>
-						<span class="tape">作 業 記 録</span>
-						<h1>{siteTitle}</h1>
-						<p class="tagline">{siteTagline}</p>
-					</div>
+					<h1 class="visually-hidden">{siteTitle}</h1>
+					<span class="tape">作 業 記 録</span>
 					<div class="meta">
 						<b>{posts.length} entries</b>
 						<br />
@@ -94,20 +90,6 @@ const oldestYear = dates.length > 0 ? getJstYear(dates[dates.length - 1]) : null
 		justify-content: space-between;
 		gap: 20px;
 		padding: 0 0 18px 8px;
-	}
-
-	.site-head h1 {
-		font-size: clamp(36px, 5.5vw, 52px);
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		line-height: 1.25;
-		margin: 0 0 6px;
-	}
-
-	.site-head .tagline {
-		font-size: 14px;
-		color: var(--color-muted);
-		margin: 0;
 	}
 
 	.site-head .meta {

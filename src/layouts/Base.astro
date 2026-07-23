@@ -81,7 +81,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
 			rel="stylesheet"
 		/>
 		{faviconUrl && <link rel="icon" href={faviconUrl} />}
@@ -104,7 +104,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 	<body>
 		<EmDashBodyStart page={pageCtx} />
 		<header class="notebook-head">
-			<a href="/" class="home-link">~/{siteTitle}</a>
+			<a href="/" class="home-link">{siteTitle}</a>
 			<nav class="head-nav">
 				{
 					menuItems.map((item) => (
@@ -142,11 +142,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 		<footer class="foot">
 			<WidgetArea name="footer" />
-			<p class="foot-line">
-				ochanu.co — built on EmDash / Astro / Cloudflare Workers · © {
-					new Date().getFullYear()
-				} ochanuco · <a href="/rss.xml">rss</a>
-			</p>
+			<p class="foot-line">© {new Date().getFullYear()} ochanuco</p>
 		</footer>
 
 		<script>
@@ -295,8 +291,8 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 				/* Typography — handwritten Japanese face applied site-wide. */
 				--font-hand:
-					"Klee One", "Klee", "Tsukushi A Round Gothic",
-					"Hiragino Maru Gothic ProN", sans-serif;
+					"Zen Maru Gothic", "Hiragino Maru Gothic ProN",
+					"Tsukushi A Round Gothic", sans-serif;
 				--font-sans: var(--font-hand);
 				--font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -433,6 +429,16 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				background: var(--color-desk);
 			}
 
+			/* スクリーンリーダー向けに残す不可視要素 */
+			.visually-hidden {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				overflow: hidden;
+				clip-path: inset(50%);
+				white-space: nowrap;
+			}
+
 			/* ノートカード — 台紙の上に乗る1枚のノート。各ページの
 			   コンテナがこのクラスを付ける */
 			.notebook-card {
@@ -506,6 +512,9 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			}
 
 			.sheet {
+				/* 方眼セル1マスの大きさ。行の line-height は2マスぶんで、
+				   折り返しても文字が罫線に乗り続ける */
+				--cell: 20px;
 				/* Grid + a vertical rule marking off the date margin column. */
 				background:
 					linear-gradient(
@@ -516,13 +525,13 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 					),
 					repeating-linear-gradient(
 						to bottom,
-						transparent 0 19px,
-						var(--color-grid) 19px 20px
+						transparent 0 calc(var(--cell) - 1px),
+						var(--color-grid) calc(var(--cell) - 1px) var(--cell)
 					),
 					repeating-linear-gradient(
 						to right,
-						transparent 0 19px,
-						var(--color-grid) 19px 20px
+						transparent 0 calc(var(--cell) - 1px),
+						var(--color-grid) calc(var(--cell) - 1px) var(--cell)
 					);
 				border-top: 1.5px solid var(--color-rule);
 			}
@@ -530,8 +539,10 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			.row {
 				display: flex;
 				align-items: baseline;
-				line-height: 40px;
-				min-height: 40px;
+				/* 折り返し時の行間は本文向けに詰め、1行時の高さは
+				   padding で 2マスぶん(40px)に合わせる */
+				line-height: 28px;
+				padding-block: 6px;
 			}
 
 			.row .margin {
@@ -581,7 +592,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			}
 
 			.row.blank {
-				min-height: 20px;
+				min-height: var(--cell, 20px);
 			}
 
 			.row .cat {
@@ -613,6 +624,8 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 			@media (max-width: 640px) {
 				.sheet {
+					/* モバイルはセルを縮めて行間(2マス=30px)を詰める */
+					--cell: 15px;
 					background:
 						linear-gradient(
 							to right,
@@ -622,14 +635,24 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 						),
 						repeating-linear-gradient(
 							to bottom,
-							transparent 0 19px,
-							var(--color-grid) 19px 20px
+							transparent 0 calc(var(--cell) - 1px),
+							var(--color-grid) calc(var(--cell) - 1px) var(--cell)
 						),
 						repeating-linear-gradient(
 							to right,
-							transparent 0 19px,
-							var(--color-grid) 19px 20px
+							transparent 0 calc(var(--cell) - 1px),
+							var(--color-grid) calc(var(--cell) - 1px) var(--cell)
 						);
+				}
+
+				.row {
+					/* 1行時 25 + 5 = 30px(モバイルの2マス) */
+					line-height: 25px;
+					padding-block: 2.5px;
+				}
+
+				.row .body {
+					font-size: 15.5px;
 				}
 
 				.row .margin {
@@ -661,7 +684,8 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				color: var(--color-ink);
 				text-decoration: none;
 				font-weight: 600;
-				letter-spacing: 0.01em;
+				font-size: 15px;
+				letter-spacing: 0.04em;
 			}
 
 			.home-link:hover {
