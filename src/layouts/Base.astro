@@ -492,7 +492,8 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 			.note-rule {
 				border-top: 2px solid var(--color-rule);
-				height: 6px;
+				/* border-box なので border 2px + 描画領域 6px */
+				height: 8px;
 				background-image: radial-gradient(
 					circle at 10px 4px,
 					var(--color-rule) 1.3px,
