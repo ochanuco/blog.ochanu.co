@@ -512,37 +512,39 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			}
 
 			.sheet {
-				/* 方眼セル1マスの大きさ。行の line-height は2マスぶんで、
-				   折り返しても文字が罫線に乗り続ける */
-				--cell: 20px;
-				/* Grid + a vertical rule marking off the date margin column. */
-				background:
-					linear-gradient(
-						to right,
-						transparent 0 103px,
-						var(--color-rule) 103px 104px,
-						transparent 104px
-					),
-					repeating-linear-gradient(
-						to bottom,
-						transparent 0 calc(var(--cell) - 1px),
-						var(--color-grid) calc(var(--cell) - 1px) var(--cell)
-					),
-					repeating-linear-gradient(
-						to right,
-						transparent 0 calc(var(--cell) - 1px),
-						var(--color-grid) calc(var(--cell) - 1px) var(--cell)
-					);
+				/* 罫線1行の高さ。罫線そのものは各 .row が自分の背景として
+				   持つ(紙側の繰り返し背景だと、ブラウザの拡大率によっては
+				   背景タイルの丸めと行レイアウトの丸めが食い違い、下に
+				   いくほど累積ズレするため) */
+				--pitch: 32px;
 				border-top: 1.5px solid var(--color-rule);
 			}
 
 			.row {
 				display: flex;
-				align-items: baseline;
-				/* 折り返し時の行間は本文向けに詰め、1行時の高さは
-				   padding で 2マスぶん(40px)に合わせる */
-				line-height: 28px;
-				padding-block: 6px;
+				/* baseline 揃えだとフォントサイズ差で行高が 32px を超えて
+				   罫線から累積ズレするため、上端揃え+同一 line-height で
+				   視覚的なベースラインを合わせる */
+				align-items: flex-start;
+				/* 高さは常に罫線ピッチの倍数(折り返せば2行ぶん) */
+				line-height: var(--pitch, 32px);
+				min-height: var(--pitch, 32px);
+				/* ドット入り罫線。行ごとに描き直すので誤差が累積しない */
+				background-image:
+					radial-gradient(
+						circle at 10px calc(var(--pitch, 32px) - 1px),
+						var(--color-rule) 1.1px,
+						transparent 1.4px
+					),
+					repeating-linear-gradient(
+						to bottom,
+						transparent 0 calc(var(--pitch, 32px) - 1px),
+						var(--color-grid) calc(var(--pitch, 32px) - 1px)
+							var(--pitch, 32px)
+					);
+				background-size:
+					20px var(--pitch, 32px),
+					100% var(--pitch, 32px);
 			}
 
 			.row .margin {
@@ -592,7 +594,8 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			}
 
 			.row.blank {
-				min-height: var(--cell, 20px);
+				/* 空行もちょうど罫線1行ぶん */
+				min-height: var(--pitch, 32px);
 			}
 
 			.row .cat {
@@ -624,31 +627,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 			@media (max-width: 640px) {
 				.sheet {
-					/* モバイルはセルを縮めて行間(2マス=30px)を詰める */
-					--cell: 15px;
-					background:
-						linear-gradient(
-							to right,
-							transparent 0 71px,
-							var(--color-rule) 71px 72px,
-							transparent 72px
-						),
-						repeating-linear-gradient(
-							to bottom,
-							transparent 0 calc(var(--cell) - 1px),
-							var(--color-grid) calc(var(--cell) - 1px) var(--cell)
-						),
-						repeating-linear-gradient(
-							to right,
-							transparent 0 calc(var(--cell) - 1px),
-							var(--color-grid) calc(var(--cell) - 1px) var(--cell)
-						);
-				}
-
-				.row {
-					/* 1行時 25 + 5 = 30px(モバイルの2マス) */
-					line-height: 25px;
-					padding-block: 2.5px;
+					--pitch: 28px;
 				}
 
 				.row .body {
