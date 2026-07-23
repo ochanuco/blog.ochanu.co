@@ -110,33 +110,30 @@ const olderPost =
 >
 	<article class="entry-page notebook-card">
 		<header class="entry-head">
-			<div class="entry-margin">
-				{
-					marginDate && (
-						<time class="entry-date" datetime={publishedAt?.toISOString()}>
-							{marginDate}
+			{/* キャンパスノートの表題部: 右上に Date / Tag 欄 */}
+			<div class="entry-fields">
+				{marginDate && (
+					<p class="field">
+						<span class="k">Date</span>
+						<time class="v" datetime={publishedAt?.toISOString()}>
+							{marginDate.replaceAll(".", " . ")}
 						</time>
-					)
-				}
-				{primaryCategory && <p class="entry-cat">（{primaryCategory.label}）</p>}
-				<p class="entry-reading">{readingTime} min</p>
-				{
-					bylines.length > 0 && (
-						<p class="entry-byline">
-							{bylines.map((credit, i) => (
-								<>
-									{i > 0 && "、"}
-									{credit.byline.displayName}
-								</>
-							))}
-						</p>
-					)
-				}
+					</p>
+				)}
+				{primaryCategory && (
+					<p class="field">
+						<span class="k">Tag</span>
+						<span class="v">{primaryCategory.label}</span>
+					</p>
+				)}
+				<p class="entry-sub">
+					{readingTime} min
+					{bylines.length > 0 &&
+						` ・ ${bylines.map((c) => c.byline.displayName).join("、")}`}
+				</p>
 			</div>
-			<div class="entry-title-col">
-				<h1 class="entry-title" {...post.edit.title}>{post.data.title}</h1>
-				{post.data.excerpt && <p class="entry-excerpt">{post.data.excerpt}</p>}
-			</div>
+			<h1 class="entry-title" {...post.edit.title}>{post.data.title}</h1>
+			<div class="entry-title-rule" aria-hidden="true" />
 		</header>
 
 		{
@@ -147,7 +144,7 @@ const olderPost =
 			)
 		}
 
-		<div class="entry-content">
+		<div class="entry-content ruled-prose ruled-paper">
 			<PortableText value={post.data.content} />
 		</div>
 
@@ -190,39 +187,45 @@ const olderPost =
 	}
 
 	.entry-head {
+		margin-bottom: 40px;
+	}
+
+	/* ノートの表題部: 右上の No. / Date 記入欄 */
+	.entry-fields {
 		display: flex;
-		gap: 24px;
-		align-items: flex-start;
-		margin-bottom: 32px;
-		padding-bottom: 20px;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 8px;
+		margin-bottom: 26px;
+	}
+
+	.field {
+		display: flex;
+		align-items: baseline;
+		gap: 12px;
+		width: 250px;
+		margin: 0;
+		padding-bottom: 3px;
 		border-bottom: 1.5px solid var(--color-rule);
 	}
 
-	.entry-margin {
-		flex: none;
-		width: 112px;
-		text-align: right;
+	.field .k {
+		font-size: 13px;
+		color: var(--color-muted);
+		letter-spacing: 0.06em;
+	}
+
+	.field .v {
+		font-size: 16px;
+		font-weight: 700;
+		color: var(--color-red);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.entry-sub {
+		margin: 2px 0 0;
 		font-size: 12.5px;
 		color: var(--color-muted);
-	}
-
-	.entry-date {
-		display: block;
-		font-variant-numeric: tabular-nums;
-		color: var(--color-red);
-		font-weight: 600;
-		margin-bottom: 4px;
-	}
-
-	.entry-cat,
-	.entry-reading,
-	.entry-byline {
-		margin: 2px 0 0;
-	}
-
-	.entry-title-col {
-		flex: 1;
-		min-width: 0;
 	}
 
 	.entry-title {
@@ -232,10 +235,18 @@ const olderPost =
 		margin: 0 0 10px;
 	}
 
-	.entry-excerpt {
-		font-size: 15px;
-		color: var(--color-muted);
-		margin: 0;
+	/* タイトル行: 下に太い実線、その下にドット入りの太罫 */
+	.entry-title-rule {
+		margin-top: 14px;
+		border-top: 2px solid var(--color-rule);
+		height: 6px;
+		background-image: radial-gradient(
+			circle at 10px 4px,
+			var(--color-rule) 1.3px,
+			transparent 1.6px
+		);
+		background-size: 20px 6px;
+		background-repeat: repeat-x;
 	}
 
 	.entry-hero {
@@ -251,37 +262,8 @@ const olderPost =
 	}
 
 	/* Reading area: paper only, no grid — readability over decoration. */
-	.entry-content {
-		font-size: 16px;
-		line-height: 1.9;
-	}
-
-	.entry-content :global(p) {
-		margin-bottom: 1.5em;
-	}
-
-	.entry-content :global(h2) {
-		font-size: 1.5em;
-		margin-top: 2em;
-		margin-bottom: 0.75em;
-	}
-
-	.entry-content :global(h3) {
-		font-size: 1.25em;
-		margin-top: 1.75em;
-		margin-bottom: 0.5em;
-	}
-
-	.entry-content :global(blockquote) {
-		margin: 2em 0;
-		padding: var(--spacing-4) var(--spacing-6);
-		border-left: 3px solid var(--color-rule);
-		color: var(--color-muted);
-		font-style: italic;
-	}
-
 	.entry-content :global(pre) {
-		margin: 2em 0;
+		margin: 0 0 var(--pitch, 32px);
 		padding: var(--spacing-5);
 		background: var(--color-grid);
 		border-radius: var(--radius);
@@ -304,23 +286,10 @@ const olderPost =
 		padding: 0;
 	}
 
-	.entry-content :global(ul),
-	.entry-content :global(ol) {
-		margin-bottom: 1.5em;
-		padding-left: 1.5em;
-	}
-
-	.entry-content :global(li) {
-		margin-bottom: 0.5em;
-	}
-
-	.entry-content :global(img) {
-		margin: 2em 0;
-		border-radius: var(--radius-lg);
-	}
 
 	.entry-content :global(hr) {
-		margin: 3em 0;
+		/* 罫線1行ぶんの位置に引く(ピッチの倍数を維持) */
+		margin: calc(var(--pitch, 32px) - 1px) 0 var(--pitch, 32px);
 		border: none;
 		border-top: 1px solid var(--color-rule);
 	}
@@ -379,27 +348,8 @@ const olderPost =
 	}
 
 	@media (max-width: 560px) {
-		.entry-head {
-			flex-direction: column;
-			gap: 8px;
-		}
-
-		.entry-margin {
-			width: auto;
-			text-align: left;
-			display: flex;
-			flex-wrap: wrap;
-			gap: 4px 12px;
-		}
-
-		.entry-date {
-			margin-bottom: 0;
-		}
-
-		.entry-cat,
-		.entry-reading,
-		.entry-byline {
-			margin: 0;
+		.field {
+			width: 200px;
 		}
 	}
 </style>

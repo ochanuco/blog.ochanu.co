@@ -27,7 +27,7 @@ Astro.cache.set(cacheHint);
 			<h1 class="page-title" {...page.edit.title}>{page.data.title}</h1>
 		</header>
 
-		<div class="page-content">
+		<div class="page-content ruled-prose ruled-paper">
 			<PortableText value={page.data.content} />
 		</div>
 	</article>
@@ -49,31 +49,8 @@ Astro.cache.set(cacheHint);
 		line-height: var(--leading-tight);
 	}
 
-	.page-content :global(p) {
-		margin-bottom: 1.5em;
-	}
-
-	.page-content :global(h2) {
-		font-size: var(--font-size-2xl);
-		margin-top: 2em;
-		margin-bottom: 0.75em;
-	}
-
-	.page-content :global(h3) {
-		font-size: var(--font-size-xl);
-		margin-top: 1.75em;
-		margin-bottom: 0.5em;
-	}
-
-	.page-content :global(blockquote) {
-		margin: 1.5em 0;
-		padding-left: var(--spacing-6);
-		border-left: 3px solid var(--color-border);
-		color: var(--color-muted);
-	}
-
 	.page-content :global(pre) {
-		margin: 1.5em 0;
+		margin: 0 0 var(--pitch, 32px);
 		padding: var(--spacing-4);
 		background: var(--color-surface);
 		border-radius: var(--radius);
@@ -95,13 +72,4 @@ Astro.cache.set(cacheHint);
 		padding: 0;
 	}
 
-	.page-content :global(ul),
-	.page-content :global(ol) {
-		margin-bottom: 1.5em;
-		padding-left: var(--spacing-5);
-	}
-
-	.page-content :global(li) {
-		margin-bottom: 0.5em;
-	}
 </style>

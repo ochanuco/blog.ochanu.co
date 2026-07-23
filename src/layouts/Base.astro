@@ -81,7 +81,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap"
 			rel="stylesheet"
 		/>
 		{faviconUrl && <link rel="icon" href={faviconUrl} />}
@@ -104,7 +104,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 	<body>
 		<EmDashBodyStart page={pageCtx} />
 		<header class="notebook-head">
-			<a href="/" class="home-link">~/{siteTitle}</a>
+			<a href="/" class="home-link">{siteTitle}</a>
 			<nav class="head-nav">
 				{
 					menuItems.map((item) => (
@@ -142,11 +142,7 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 		<footer class="foot">
 			<WidgetArea name="footer" />
-			<p class="foot-line">
-				ochanu.co — built on EmDash / Astro / Cloudflare Workers · © {
-					new Date().getFullYear()
-				} ochanuco · <a href="/rss.xml">rss</a>
-			</p>
+			<p class="foot-line">© {new Date().getFullYear()} ochanuco</p>
 		</footer>
 
 		<script>
@@ -295,8 +291,8 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 
 				/* Typography — handwritten Japanese face applied site-wide. */
 				--font-hand:
-					"Klee One", "Klee", "Tsukushi A Round Gothic",
-					"Hiragino Maru Gothic ProN", sans-serif;
+					"Zen Maru Gothic", "Hiragino Maru Gothic ProN",
+					"Tsukushi A Round Gothic", sans-serif;
 				--font-sans: var(--font-hand);
 				--font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -433,6 +429,16 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				background: var(--color-desk);
 			}
 
+			/* スクリーンリーダー向けに残す不可視要素 */
+			.visually-hidden {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				overflow: hidden;
+				clip-path: inset(50%);
+				white-space: nowrap;
+			}
+
 			/* ノートカード — 台紙の上に乗る1枚のノート。各ページの
 			   コンテナがこのクラスを付ける */
 			.notebook-card {
@@ -505,33 +511,44 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				border-radius: 9px 13px 8px 14px / 14px 8px 13px 9px;
 			}
 
+			/* ドット入り罫線の設計:
+			   - レイアウトは全要素をピッチ(--pitch)の倍数に揃える
+			   - 罫線の「描画」は行・ブロック単位で行う。ブラウザによっては
+			     繰り返し背景をタイル丸めで描くため、紙全体に一枚で敷くと
+			     拡大率の端数で下に行くほど累積ズレする。単位ごとに描けば
+			     誤差は毎回リセットされ、見た目は固定罫線と等価になる */
+			.ruled-paper {
+				--pitch: 32px;
+			}
+
 			.sheet {
-				/* Grid + a vertical rule marking off the date margin column. */
-				background:
-					linear-gradient(
-						to right,
-						transparent 0 103px,
-						var(--color-rule) 103px 104px,
-						transparent 104px
-					),
-					repeating-linear-gradient(
-						to bottom,
-						transparent 0 19px,
-						var(--color-grid) 19px 20px
-					),
-					repeating-linear-gradient(
-						to right,
-						transparent 0 19px,
-						var(--color-grid) 19px 20px
-					);
 				border-top: 1.5px solid var(--color-rule);
 			}
 
 			.row {
 				display: flex;
-				align-items: baseline;
-				line-height: 40px;
-				min-height: 40px;
+				/* baseline 揃えだとフォントサイズ差で行高が 32px を超えて
+				   罫線から累積ズレするため、上端揃え+同一 line-height で
+				   視覚的なベースラインを合わせる */
+				align-items: flex-start;
+				/* 高さは常に罫線ピッチの倍数(折り返せば2行ぶん) */
+				line-height: var(--pitch, 32px);
+				min-height: var(--pitch, 32px);
+				background-image:
+					radial-gradient(
+						circle at 10px calc(var(--pitch, 32px) - 1px),
+						var(--color-rule) 1.1px,
+						transparent 1.4px
+					),
+					repeating-linear-gradient(
+						to bottom,
+						transparent 0 calc(var(--pitch, 32px) - 1px),
+						var(--color-grid) calc(var(--pitch, 32px) - 1px)
+							var(--pitch, 32px)
+					);
+				background-size:
+					20px var(--pitch, 32px),
+					100% var(--pitch, 32px);
 			}
 
 			.row .margin {
@@ -545,11 +562,19 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				font-variant-numeric: tabular-nums;
 			}
 
+			/* 年の区切りはマジックで罫線2行を使って書いた見出し。
+			   文字は下の罫線に乗せる(上の行は余白) */
+			.row.year-row {
+				line-height: var(--pitch, 32px);
+				padding-top: var(--pitch, 32px);
+				min-height: calc(var(--pitch, 32px) * 2);
+			}
+
 			.row .margin.year {
 				color: var(--color-red);
-				font-size: 13px;
-				font-weight: 600;
-				letter-spacing: 0.06em;
+				font-size: 23px;
+				font-weight: 700;
+				letter-spacing: 0.05em;
 			}
 
 			.row .body {
@@ -581,7 +606,179 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			}
 
 			.row.blank {
-				min-height: 20px;
+				/* 空行もちょうど罫線1行ぶん */
+				min-height: var(--pitch, 32px);
+			}
+
+			/* 本文(記事・固定ページの Portable Text)。罫線は .ruled-paper
+			   として紙に固定で敷かれ、本文側は余白をすべてピッチの倍数に
+			   揃えて罫線に乗る */
+			.ruled-prose {
+				font-size: 16px;
+				line-height: var(--pitch, 32px);
+			}
+
+			/* ブロックの下余白は padding で取り、罫線が空行にも続くように
+			   する(margin だと背景が塗られず罫線が途切れる) */
+			.ruled-prose > :is(p, ul, ol, h1, h2, h3, h4, blockquote) {
+				margin: 0;
+				padding-bottom: var(--pitch, 32px);
+				background-image:
+					radial-gradient(
+						circle at 10px calc(var(--pitch, 32px) - 1px),
+						var(--color-rule) 1.1px,
+						transparent 1.4px
+					),
+					repeating-linear-gradient(
+						to bottom,
+						transparent 0 calc(var(--pitch, 32px) - 1px),
+						var(--color-grid) calc(var(--pitch, 32px) - 1px)
+							var(--pitch, 32px)
+					);
+				background-size:
+					20px var(--pitch, 32px),
+					100% var(--pitch, 32px);
+			}
+
+			/* インポート由来の空段落は罫線のリズムを乱すだけなので消す */
+			.ruled-prose > p:empty {
+				display: none;
+			}
+
+			.ruled-prose :is(h1, h2, h3, h4) {
+				font-weight: 700;
+			}
+
+			/* h2/h3 は赤マジックで罫線2行を使って書いた見出し
+			   (一覧の年区切りと同じ文法。はてな由来の記事は h3 が
+			   最上位見出しなので h3 も同格に扱う) */
+			.ruled-prose h1,
+			.ruled-prose h2,
+			.ruled-prose h3 {
+				color: var(--color-red);
+				/* 罫線2行ぶんのうち、文字は下の罫線に乗せる */
+				line-height: var(--pitch, 32px);
+				padding-top: var(--pitch, 32px);
+				letter-spacing: 0.04em;
+			}
+
+			.ruled-prose h1 {
+				font-size: 27px;
+			}
+
+			.ruled-prose h2 {
+				font-size: 26px;
+			}
+
+			.ruled-prose h3 {
+				font-size: 23px;
+			}
+
+			.ruled-prose h4 {
+				font-size: 17px;
+			}
+
+			.ruled-prose :is(ul, ol) {
+				padding-left: 1.5em;
+			}
+
+			.ruled-prose li > :is(p, ul, ol) {
+				margin: 0;
+			}
+
+			.ruled-prose blockquote {
+				border-left: 3px solid var(--color-rule);
+				padding-left: 16px;
+				color: var(--color-muted);
+			}
+
+			/* 罫線に乗らない貼り物。コード・表は下に罫線1行ぶんの余白、
+			   figure は罫線を自前で描くので余白は padding 側で取る */
+			.ruled-prose > :is(pre, table) {
+				margin: 0 0 var(--pitch, 32px);
+			}
+
+			.ruled-prose > figure {
+				margin: 0;
+			}
+
+			/* 写真はノートに貼ってある体: 罫線の上に白フチ+影+微傾みで
+			   乗り、上辺にマスキングテープ。罫線は紙側にあるので、写真の
+			   まわりにもそのまま罫線が覗く */
+			.ruled-prose figure {
+				position: relative;
+				/* 左右をわずかに空けて、両脇に紙の罫線を覗かせる
+				   (img の幅指定は emdash 側のスタイルが勝つため padding で)。
+				   下 padding は snapToPitch が高さをピッチの倍数に微調整 */
+				padding: 14px 18px var(--pitch, 32px);
+				background-image:
+					radial-gradient(
+						circle at 10px calc(var(--pitch, 32px) - 1px),
+						var(--color-rule) 1.1px,
+						transparent 1.4px
+					),
+					repeating-linear-gradient(
+						to bottom,
+						transparent 0 calc(var(--pitch, 32px) - 1px),
+						var(--color-grid) calc(var(--pitch, 32px) - 1px)
+							var(--pitch, 32px)
+					);
+				background-size:
+					20px var(--pitch, 32px),
+					100% var(--pitch, 32px);
+			}
+
+			.ruled-prose figure img {
+				display: block;
+				height: auto;
+				border: 8px solid #fdfdfb;
+				box-shadow: 0 5px 16px rgba(0, 0, 0, 0.18);
+				transform: rotate(-0.6deg);
+			}
+
+			.ruled-prose figure:nth-of-type(even) img {
+				transform: rotate(0.5deg);
+			}
+
+			.ruled-prose figure::before {
+				content: "";
+				position: absolute;
+				top: 3px;
+				left: 50%;
+				width: 96px;
+				height: 22px;
+				transform: translateX(-50%) rotate(-2deg);
+				background: var(--tape-bg);
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+				z-index: 2;
+				pointer-events: none;
+			}
+
+			.ruled-prose figcaption {
+				font-size: 12.5px;
+				color: var(--color-muted);
+				text-align: center;
+				line-height: var(--pitch, 32px);
+			}
+
+			/* コードは印刷した紙片を貼った体。本文よりわずかに狭くして
+			   両脇に罫線を覗かせる */
+			.ruled-prose pre {
+				width: calc(100% - 36px);
+				margin-inline: auto;
+				border: 1px solid var(--color-rule);
+				border-radius: 6px;
+				box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+			}
+
+			@media (max-width: 640px) {
+				.ruled-paper {
+					--pitch: 28px;
+				}
+
+				.ruled-prose {
+					font-size: 15px;
+				}
 			}
 
 			.row .cat {
@@ -612,24 +809,8 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			}
 
 			@media (max-width: 640px) {
-				.sheet {
-					background:
-						linear-gradient(
-							to right,
-							transparent 0 71px,
-							var(--color-rule) 71px 72px,
-							transparent 72px
-						),
-						repeating-linear-gradient(
-							to bottom,
-							transparent 0 19px,
-							var(--color-grid) 19px 20px
-						),
-						repeating-linear-gradient(
-							to right,
-							transparent 0 19px,
-							var(--color-grid) 19px 20px
-						);
+				.row .body {
+					font-size: 15.5px;
 				}
 
 				.row .margin {
@@ -661,7 +842,8 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				color: var(--color-ink);
 				text-decoration: none;
 				font-weight: 600;
-				letter-spacing: 0.01em;
+				font-size: 15px;
+				letter-spacing: 0.04em;
 			}
 
 			.home-link:hover {
@@ -750,6 +932,49 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 		</style>
 
 		<script>
+			// 貼り物(画像 figure)は高さが任意になるため、下 padding を
+			// 微調整して自身の高さをピッチの倍数に揃える。罫線の描画は
+			// ブロック単位なので、これで前後のリズムが完全につながる。
+			function snapToPitch() {
+				document
+					.querySelectorAll<HTMLElement>(".ruled-prose")
+					.forEach((container) => {
+						const pitch =
+							parseFloat(
+								getComputedStyle(container).getPropertyValue("--pitch")
+							) || 32;
+						const items = container.querySelectorAll<HTMLElement>(
+							":scope > figure"
+						);
+						items.forEach((el) => {
+							el.style.paddingBottom = "";
+							const h = el.getBoundingClientRect().height;
+							const rem = h % pitch;
+							const extra =
+								rem > 0.5 && rem < pitch - 0.5 ? pitch - rem : 0;
+							el.style.paddingBottom = `${pitch + extra}px`;
+						});
+					});
+			}
+
+			let snapTimer: ReturnType<typeof setTimeout> | undefined;
+			function scheduleSnap() {
+				clearTimeout(snapTimer);
+				snapTimer = setTimeout(snapToPitch, 60);
+			}
+
+			snapToPitch();
+			window.addEventListener("load", snapToPitch);
+			window.addEventListener("resize", scheduleSnap);
+			document.fonts?.ready.then(snapToPitch);
+			document
+				.querySelectorAll<HTMLImageElement>(".ruled-prose img")
+				.forEach((img) => {
+					if (!img.complete) {
+						img.addEventListener("load", scheduleSnap, { once: true });
+					}
+				});
+
 			// ⌘K / Ctrl+K navigates to the search page (there's no inline search
 			// input in the header anymore).
 			document.addEventListener("keydown", (e) => {
