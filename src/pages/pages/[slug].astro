@@ -23,9 +23,12 @@ Astro.cache.set(cacheHint);
 	content={{ collection: "pages", id: page.data.id, slug }}
 >
 	<article class="page-article notebook-card">
-		<header class="page-header">
-			<h1 class="page-title" {...page.edit.title}>{page.data.title}</h1>
+		<header class="page-header note-head">
+			<h1 class="page-title note-title" {...page.edit.title}>
+				{page.data.title}
+			</h1>
 		</header>
+		<div class="note-rule head-rule" aria-hidden="true" />
 
 		<div class="page-content ruled-prose ruled-paper">
 			<PortableText value={page.data.content} />
@@ -36,15 +39,19 @@ Astro.cache.set(cacheHint);
 <style>
 	.page-article {
 		max-width: 944px;
-		padding: var(--spacing-16) var(--spacing-6) var(--spacing-16);
+		padding: 24px clamp(16px, 4vw, 36px) 64px;
 	}
 
 	.page-header {
-		margin-bottom: var(--spacing-8);
+		min-height: 64px;
+	}
+
+	.head-rule {
+		margin-bottom: 28px;
 	}
 
 	.page-title {
-		font-size: clamp(var(--font-size-2xl), 4vw, var(--font-size-4xl));
+		font-size: clamp(22px, 3.5vw, 28px);
 		font-weight: 700;
 		line-height: var(--leading-tight);
 	}

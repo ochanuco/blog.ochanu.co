@@ -443,9 +443,20 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 			   コンテンツ直前の「太実線+ドット太罫」の区切り */
 			.note-head {
 				display: flex;
-				align-items: flex-start;
+				align-items: stretch;
 				justify-content: space-between;
 				gap: 16px;
+			}
+
+			/* テープや見出しは欄の下端(太罫の上)に揃える */
+			.note-head .tape,
+			.note-head .note-title {
+				align-self: flex-end;
+				margin-bottom: 0;
+			}
+
+			.note-head + .note-rule {
+				margin-top: 10px;
 			}
 
 			.note-fields {
