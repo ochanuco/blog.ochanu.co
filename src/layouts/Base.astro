@@ -647,15 +647,22 @@ const menuItems = (menu?.items ?? []).filter((item) => item.url !== "/");
 				font-weight: 700;
 			}
 
-			/* h2 はマジックで罫線2行を使って書いた見出し */
+			/* h2/h3 は赤マジックで罫線2行を使って書いた見出し
+			   (一覧の年区切りと同じ文法。はてな由来の記事は h3 が
+			   最上位見出しなので h3 も同格に扱う) */
+			.ruled-prose h2,
+			.ruled-prose h3 {
+				color: var(--color-red);
+				line-height: calc(var(--pitch, 32px) * 2);
+				letter-spacing: 0.04em;
+			}
+
 			.ruled-prose h2 {
-				font-size: 27px;
-				line-height: calc(var(--pitch) * 2);
-				letter-spacing: 0.02em;
+				font-size: 26px;
 			}
 
 			.ruled-prose h3 {
-				font-size: 20px;
+				font-size: 23px;
 			}
 
 			.ruled-prose h4 {
