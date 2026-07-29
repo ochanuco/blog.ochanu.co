@@ -60,6 +60,12 @@ pnpm deploy
 
 Or click the deploy button above to set up the project in your Cloudflare account.
 
+## License
+
+MIT -- see [LICENSE](LICENSE).
+
+This project is based on the [EmDash](https://github.com/emdash-cms/emdash) `blog-cloudflare` template, which is distributed under the MIT License. The agent documentation bundled under `ochanuco-blog/.agents/skills/` also originates from EmDash.
+
 ## See Also
 
 - [Node.js variant](../blog) -- same template using SQLite and local file storage
