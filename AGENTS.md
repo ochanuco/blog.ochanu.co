@@ -13,9 +13,7 @@ The admin UI is at `http://localhost:4321/_emdash/admin`.
 
 The whole site (`blog.ochanu.co`) — public pages and the admin UI — is served by one EmDash SSR Worker (`wrangler.jsonc`, name `ochanuco-blog`), with D1/R2 behind it. This is the standard Astro + EmDash setup.
 
-```bash
-pnpm build && pnpm deploy   # Build and deploy the worker
-```
+Production is deployed by running the `deploy` GitHub Actions workflow manually (`ref`: main or a SHA on main; approval by the `production` Environment). It runs `scripts/deploy.sh production` (`pnpm run build` then `wrangler deploy`).
 
 Search on `/search` is server-rendered substring matching over the posts collection (title/excerpt/body). It deliberately avoids EmDash's built-in FTS5 search (`emdash/ui/search` LiveSearch) because the unicode61 tokenizer drops Japanese queries.
 
