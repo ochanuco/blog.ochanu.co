@@ -15,6 +15,11 @@ concurrency:
 
 jobs:
   ci:
-    uses: ochanuco/.github/.github/workflows/pnpm.yml@e5102a8ff65b3c15a2afa263d4970dbbe6538862 # v1.1.0
+    uses: ochanuco/.github/.github/workflows/pnpm.yml@7b071bfac95ab5e51fc1c4eae49863449dd89524 # v1.2.0
     with:
-      run: pnpm run typecheck
+      # コンテンツの型は管理画面で決めたスキーマ（本番の D1）から生成する。emdash-env.d.ts は git の管理外
+      run: |
+        pnpm exec emdash types --url https://blog.ochanu.co --output emdash-env.d.ts
+        pnpm run typecheck
+    secrets:
+      EMDASH_TOKEN: ${{ secrets.EMDASH_TOKEN }}
