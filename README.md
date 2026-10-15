@@ -54,7 +54,7 @@ pnpm dev
 
 ## Deploying
 
-Production is deployed by running the `deploy` GitHub Actions workflow manually with `ref` set to `main` (or a commit SHA on main). After the `production` Environment is approved it runs `scripts/deploy.sh production` (`pnpm run build` then `wrangler deploy`). The build reads the remote D1/R2 bindings, so it needs `CLOUDFLARE_API_TOKEN`, which the workflow takes from 1Password.
+Production is deployed by the `deploy` GitHub Actions workflow on every push to `main` (see the `plan` job summary of the run for what ships; run it manually with `ref` set to a commit SHA on main to roll back). It runs `scripts/deploy.sh production` (`pnpm run build` then `wrangler deploy`). The build reads the remote D1/R2 bindings, so it needs `CLOUDFLARE_API_TOKEN`, which the workflow takes from 1Password.
 
 Or click the deploy button above to set up the project in your Cloudflare account.
 
